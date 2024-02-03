@@ -10,9 +10,6 @@ wdk = "0.1.0"
 wdk-alloc = "0.1.0"
 wdk-panic = "0.1.0"
 wdk-sys = "0.1.0"
-# 宽字符
-# widestring = "1.0.2"
-# 类型别名
 cty = "0.2.2"
 
 [build-dependencies]

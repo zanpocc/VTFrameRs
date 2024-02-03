@@ -7,7 +7,7 @@ use wdk_sys::{ntddk::RtlGetVersion, NT_SUCCESS, RTL_OSVERSIONINFOW};
 
 use crate::cpu::cpu::{ins::read_msr, stru::{msr::{ia32_feature_control_msr, ia32_mtrr_def_type_msr}, msr_index::{MSR_IA32_FEATURE_CONTROL, MSR_IA32_MTRR_DEF_TYPE}}};
 
-pub fn check_os_version() -> Result<bool, &'static str> {
+pub fn check_os_version() -> Result<(), &'static str> {
     // check system version
     let mut os_version = RTL_OSVERSIONINFOW {
         dwOSVersionInfoSize: 0,
@@ -35,10 +35,10 @@ pub fn check_os_version() -> Result<bool, &'static str> {
         os_version.dwPlatformId
     );
 
-    return Ok(true);
+    return Ok(());
 }
 
-pub fn check_vmx_cpu_support() -> Result<bool, &'static str> {
+pub fn check_vmx_cpu_support() -> Result<(), &'static str> {
     // check cpu type
     let cpuid_result = unsafe { __cpuid(0) };
 
@@ -87,5 +87,5 @@ pub fn check_vmx_cpu_support() -> Result<bool, &'static str> {
 
     println!("VMX cpu check success");
 
-    return Ok(true);
+    return Ok(());
 }

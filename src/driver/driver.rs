@@ -1,3 +1,4 @@
+
 use alloc::boxed::Box;
 use wdk::println;
 use wdk_sys::{ntddk::IoCreateDevice, DRIVER_OBJECT, NT_SUCCESS};
@@ -25,7 +26,7 @@ impl Driver {
         let data = Box::new(data);
 
         let name = string_to_utf16_slice(name);
-        let mut name_ptr = create_unicode_string(&name[..]);   
+        let mut name_ptr = create_unicode_string(name.as_slice());   
 
 
         let mut device = core::ptr::null_mut();
@@ -59,7 +60,7 @@ impl Driver {
         Ok(device)
 
     }
-    
+
 
     pub unsafe fn from_raw(raw: *mut DRIVER_OBJECT) -> Self {
         Self{

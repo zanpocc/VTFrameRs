@@ -18,6 +18,55 @@ pub mod ins {
         }
         result
     }
+
+    // todo
+    pub fn write_msr(msr: u32,value: u64) {
+    }
+
+
+    pub fn read_cr0() -> u64 {
+        let mut result: u64;
+        unsafe {
+            asm!(
+                "mov rax,cr0",
+                out("rax") result,
+                options(nostack, nomem)
+            );
+        }
+        result
+    }
+
+    pub fn write_cr0(value: u64) {
+        unsafe {
+            asm!(
+                "mov cr0,rcx",
+                in("rcx") value,
+                options(nostack, nomem)
+            );
+        }
+    }
+
+    pub fn read_cr4() -> u64 {
+        let mut result: u64;
+        unsafe {
+            asm!(
+                "mov rax,cr4",
+                out("rax") result,
+                options(nostack, nomem)
+            );
+        }
+        result
+    }
+
+    pub fn write_cr4(value: u64) {
+        unsafe {
+            asm!(
+                "mov cr4,rcx",
+                in("rcx") value,
+                options(nostack, nomem)
+            );
+        }
+    }
 }
 
 pub mod stru {

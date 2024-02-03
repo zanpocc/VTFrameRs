@@ -2,11 +2,12 @@ pub mod gd {
     use alloc::boxed::Box;
     use wdk::println;
 
-    use crate::{device::device::Device, vmx::vmx::vmx::Vcpu};
+    use crate::{device::{device::Device, symbolic_link::SymbolicLink}, vmx::vmx::Vmm};
 
     pub struct GD {
         pub device: Option<Device>,
-        pub vcpu: Option<Vcpu>,
+        pub symbolic_link: Option<SymbolicLink>,
+        pub vmx_data: Option<Vmm>,
     }
 
     impl Drop for GD {
@@ -19,11 +20,9 @@ pub mod gd {
         pub fn new() -> Self {
             let h = Box::new(Self { 
                 device: Option::None,
-                vcpu: Option::None,
+                symbolic_link: Option::None,
+                vmx_data: Option::None,
             });
-            
-            let gd_ptr: *const GD = &*h;
-            println!("GD address:{:p}",gd_ptr);
             
             *h
         }

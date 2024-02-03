@@ -18,3 +18,28 @@ pub fn create_unicode_string(s: &[u16]) -> UNICODE_STRING {
         Buffer: s.as_ptr() as _,
     }
 }
+
+
+pub fn create_mask(start_bit: usize, end_bit: usize) -> u64 {
+    // check range
+    assert!(start_bit <= end_bit && end_bit < 64, "Invalid bit range");
+
+    // calu mask
+    let mut mask = 0;
+    for i in start_bit..=end_bit {
+        mask |= 1 << i;
+    }
+
+    mask
+}
+
+// start_bit = 0
+pub fn create_end_mask(end_bit: usize) -> u64 {
+    // check range
+    assert!(0 <= end_bit && end_bit < 63, "Invalid bit range");
+
+    // calu mask
+    let mut mask = 0;
+    mask = (1 << (end_bit + 1))-1;
+    mask
+}

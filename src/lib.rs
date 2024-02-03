@@ -10,6 +10,7 @@ pub mod device;
 pub mod driver;
 pub mod utils;
 pub mod gd;
+pub mod inner;
 
 // 当 Rust 编译器不处于测试模式时才编译该代码块
 #[cfg(not(test))]
@@ -27,15 +28,15 @@ use wdk_alloc::WDKAllocator;
 #[global_allocator]
 static GLOBAL_ALLOCATOR: WDKAllocator = WDKAllocator;
 
-use wdk_sys::{DRIVER_OBJECT, NTSTATUS, PCUNICODE_STRING, STATUS_SUCCESS, STATUS_UNSUCCESSFUL};
+use wdk_sys::{ntddk::{IoGetCurrentProcess, KeGetCurrentNodeNumber}, DRIVER_OBJECT, IRP_MJ_MAXIMUM_FUNCTION, NTSTATUS, PCUNICODE_STRING, STATUS_SUCCESS, STATUS_UNSUCCESSFUL};
 
-use crate::{device::device::DeviceOperations, driver::driver::Driver, vmx::check::{check_os_version, check_vmx_cpu_support}};
+use crate::{device::{device::dispatch_device, ioctl::IoControl, symbolic_link::SymbolicLink}, driver::driver::Driver, vmx::{check::{check_os_version, check_vmx_cpu_support}, vmx::Vmm}};
 
 static mut __GD:Option<GD> = Option::None;
 
 #[export_name = "DriverEntry"] // WDF expects a symbol with the name DriverEntry
 pub unsafe extern "system" fn driver_entry(
-    driver: &mut DRIVER_OBJECT,
+    driver_object: &mut DRIVER_OBJECT,
     _registry_path: PCUNICODE_STRING,
 ) -> NTSTATUS {
     let status = STATUS_SUCCESS;
@@ -45,7 +46,7 @@ pub unsafe extern "system" fn driver_entry(
     __GD = Some(GD::new());
 
     match check_os_version(){
-        Ok(_v) => {}
+        Ok(_) => {}
         Err(e) => {
             println!("{}",e);
             return STATUS_UNSUCCESSFUL;
@@ -53,31 +54,54 @@ pub unsafe extern "system" fn driver_entry(
     }
 
     match check_vmx_cpu_support() {
-        Ok(_v) => {}
+        Ok(_) => {}
         Err(e) => {
             println!("{}",e);
             return STATUS_UNSUCCESSFUL;
         }
     }
 
-    driver.DriverUnload = Some(driver_unload);
+    driver_object.DriverUnload = Some(driver_unload);
     
     
-    let mut driver = Driver::from_raw(driver);
+    let mut driver = Driver::from_raw(driver_object);
 
-    struct Nothing{}
-    impl DeviceOperations for Nothing{}
-    match driver.create_device("\\Device\\20240202", 0x22, 0, 0, Nothing{}) {
+    match driver.create_device("\\Device\\20240202", 0x22, 0, 0, IoControl{}) {
         Ok(device) => {
             if let Some(gd) = __GD.as_mut() {
                 gd.device = Some(device);
+                match SymbolicLink::new("\\??\\20240202", "\\Device\\20240202"){
+                    Ok(v) => {
+                        gd.symbolic_link = Some(v);
+                    },
+                    Err(e) => {
+                        println!("{}",e);
+                    }
+                }
+
+                gd.vmx_data = Some(Vmm::new());
+                match &mut gd.vmx_data {
+                    Some(v) => {
+                        v.init();
+                    },
+                    None => {}
+                }
+                
             }
         },
         Err(err) => {
             println!("{}", err);
             return STATUS_UNSUCCESSFUL;
         }
-    } 
+    }
+
+    // set dispatch function
+    for i in 0..IRP_MJ_MAXIMUM_FUNCTION {
+        driver_object.MajorFunction[i as usize] = Some(dispatch_device);
+    }
+    
+    
+
     status
 }
 
