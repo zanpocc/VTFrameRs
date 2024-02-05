@@ -28,7 +28,7 @@ use wdk_alloc::WDKAllocator;
 #[global_allocator]
 static GLOBAL_ALLOCATOR: WDKAllocator = WDKAllocator;
 
-use wdk_sys::{ntddk::{IoGetCurrentProcess, KeGetCurrentNodeNumber}, DRIVER_OBJECT, IRP_MJ_MAXIMUM_FUNCTION, NTSTATUS, PCUNICODE_STRING, STATUS_SUCCESS, STATUS_UNSUCCESSFUL};
+use wdk_sys::{DRIVER_OBJECT, IRP_MJ_MAXIMUM_FUNCTION, NTSTATUS, PCUNICODE_STRING, STATUS_SUCCESS, STATUS_UNSUCCESSFUL};
 
 use crate::{device::{device::dispatch_device, ioctl::IoControl, symbolic_link::SymbolicLink}, driver::driver::Driver, vmx::{check::{check_os_version, check_vmx_cpu_support}, vmx::Vmm}};
 
@@ -40,8 +40,6 @@ pub unsafe extern "system" fn driver_entry(
     _registry_path: PCUNICODE_STRING,
 ) -> NTSTATUS {
     let status = STATUS_SUCCESS;
-
-    println!("Hello World");
 
     __GD = Some(GD::new());
 
@@ -62,7 +60,6 @@ pub unsafe extern "system" fn driver_entry(
     }
 
     driver_object.DriverUnload = Some(driver_unload);
-    
     
     let mut driver = Driver::from_raw(driver_object);
 
@@ -86,7 +83,6 @@ pub unsafe extern "system" fn driver_entry(
                     },
                     None => {}
                 }
-                
             }
         },
         Err(err) => {

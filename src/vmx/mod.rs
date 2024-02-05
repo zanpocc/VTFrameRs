@@ -1,5 +1,7 @@
 pub mod check;
 pub mod vmx;
+pub mod data;
+pub mod vmm;
 
 pub mod ins {
     use core::{arch::asm, ffi::c_void};
@@ -92,6 +94,63 @@ pub mod ins {
             );
         }
 
+        VmxInstructionResult::from(result)
+    }
+
+    pub fn __vmx_vmlaunch() -> VmxInstructionResult {
+        let mut result:u64;
+        unsafe {
+            asm!(
+                "xor rax,rax",
+                "vmlaunch",
+                "setc al",
+	            "setz cl",
+	            "adc al,cl",
+                out("rax") result,
+                options(nostack, nomem)
+            );
+        }
+
+        println!("vmlaunch result:{}",result);
+
+        VmxInstructionResult::from(result)
+    }
+
+    pub fn __vmx_vmwrite(field: u64,value: u64) -> VmxInstructionResult {
+        let mut result:u64;
+        unsafe {
+            asm!(
+                "xor rax,rax",
+                "vmwrite rcx,rdx",
+                "setc al",
+	            "setz cl",
+	            "adc al,cl",
+                in("rcx") field,
+                in("rdx") value,
+                out("rax") result,
+                options(nostack, nomem)
+            );
+        }
+        
+        VmxInstructionResult::from(result)
+    }
+
+    pub fn __vmx_vmread(field: u64,value: &mut u64) -> VmxInstructionResult {
+        let mut result:u64;
+        unsafe {
+            asm!(
+                "xor rax,rax",
+                "vmread [rdx],rcx",
+                "setc al",
+	            "setz cl",
+	            "adc al,cl",
+                in("rcx") field,
+                in("rdx") value,
+                out("rax") result,
+                options(nostack, nomem)
+            );
+        }
+        
         VmxInstructionResult::from(result)
     }
 

@@ -3,6 +3,22 @@ extern crate alloc;
 pub mod ins {
     use core::arch::asm;
 
+    pub fn segment_limit(selector: u64) -> u64 {
+        let mut result: u64;
+
+        unsafe {
+            asm!(
+                "xor rax,rax",
+                "lsl rax, rcx",
+                out("rax") result,
+                in("rcx") selector,
+                options(nostack, nomem)
+            );
+        }
+
+        result
+    }
+
     pub fn read_msr(msr: u32) -> u64 {
         let mut result: u64;
 
@@ -44,6 +60,18 @@ pub mod ins {
                 options(nostack, nomem)
             );
         }
+    }
+
+    pub fn read_cr3() -> u64 {
+        let mut result: u64;
+        unsafe {
+            asm!(
+                "mov rax,cr3",
+                out("rax") result,
+                options(nostack, nomem)
+            );
+        }
+        result
     }
 
     pub fn read_cr4() -> u64 {
