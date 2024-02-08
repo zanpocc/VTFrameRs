@@ -4,23 +4,24 @@ pub mod vmx_cpu_based_controls {
     // pub(crate) const INVLPG_EXITING: u64 = 1 << 9;
     // pub(crate) const CR3_LOAD_EXITING: u64 = 1 << 15;
     // pub(crate) const CR3_STORE_EXITING: u64 = 1 << 15;
-    pub(crate) const USE_MSR_BITMAPS: u64 = 1 << 28;
-    pub(crate) const ACTIVATE_SECONDARY_CONTROL: u64 = 1 << 31;
+    pub(crate) const USE_TSC_OFFSETING: u32 = 1 << 3;
+    pub(crate) const USE_MSR_BITMAPS: u32 = 1 << 28;
+    pub(crate) const ACTIVATE_SECONDARY_CONTROL: u32 = 1 << 31;
 }
 
 pub mod vmx_secondary_cpu_based_controls {
-    pub(crate) const ENABLE_RDTSCP: u64 = 1 << 3;
-    pub(crate) const ENABLE_INVPCID: u64 = 1 << 12;
-    pub(crate) const ENABLE_XSAVESX_STORS: u64 = 1 << 20;
+    pub(crate) const ENABLE_RDTSCP: u32 = 1 << 3;
+    pub(crate) const ENABLE_INVPCID: u32 = 1 << 12;
+    pub(crate) const ENABLE_XSAVESX_STORS: u32 = 1 << 20;
 }
 
 pub mod vmx_vm_enter_controls {
-    pub(crate) const LOAD_DEBUG_CONTROLS: u64 = 1 << 2;
-    pub(crate) const IA32E_MODE_GUEST: u64 = 1 << 9;
+    pub(crate) const LOAD_DEBUG_CONTROLS: u32 = 1 << 2;
+    pub(crate) const IA32E_MODE_GUEST: u32 = 1 << 9;
 }
 
 pub mod vmx_vm_exit_controls {
-    pub(crate) const HOST_ADDRESS_SPACE_SIZE: u64 = 1 << 9;
+    pub(crate) const HOST_ADDRESS_SPACE_SIZE: u32 = 1 << 9;
 }
 
 #[allow(dead_code)]

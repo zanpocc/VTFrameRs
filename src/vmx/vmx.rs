@@ -1,18 +1,16 @@
-use core::{arch::asm, ffi::c_void, mem::size_of};
+use core::{ffi::c_void, mem::size_of, ptr::null_mut};
 
 use alloc::vec::Vec;
 use wdk::println;
-use wdk_sys::{ntddk::{IoAllocateMdl, IoFreeMdl, KeGetCurrentProcessorNumberEx, KeQueryActiveProcessorCount, KeRevertToUserAffinityThread, KeSetSystemAffinityThread, MmAllocateContiguousMemory, MmBuildMdlForNonPagedPool, MmFreeContiguousMemory, MmGetPhysicalAddress, MmProtectMdlSystemAddress, RtlCaptureContext, RtlInitializeBitMap, RtlSetBit}, CONTEXT, KERNEL_STACK_SIZE, MDL_MAPPED_TO_SYSTEM_VA, NT_SUCCESS, PAGE_READWRITE, PHYSICAL_ADDRESS, RTL_BITMAP, USHORT, _LARGE_INTEGER};
+use wdk_sys::{ntddk::{KeQueryActiveProcessorCount, KeRevertToUserAffinityThread, KeSetSystemAffinityThread, MmAllocateContiguousMemory, MmFreeContiguousMemory, MmGetPhysicalAddress, RtlCaptureContext, RtlInitializeBitMap, RtlSetBit}, CONTEXT, KERNEL_STACK_SIZE, PAGE_READWRITE, PHYSICAL_ADDRESS, RTL_BITMAP, USHORT, _LARGE_INTEGER};
 
-use crate::{cpu::cpu::{ins::{read_cr3, read_msr, segment_limit, write_cr0, write_cr4}, stru::msr_index::{MSR_IA32_DEBUGCTL, MSR_IA32_FEATURE_CONTROL, MSR_IA32_VMX_BASIC, MSR_IA32_VMX_CR0_FIXED0, MSR_IA32_VMX_CR0_FIXED1, MSR_IA32_VMX_CR4_FIXED0, MSR_IA32_VMX_CR4_FIXED1, MSR_IA32_VMX_PROCBASED_CTLS2, MSR_IA32_VMX_TRUE_ENTRY_CTLS, MSR_IA32_VMX_TRUE_EXIT_CTLS, MSR_IA32_VMX_TRUE_PINBASED_CTLS, MSR_IA32_VMX_TRUE_PROCBASED_CTLS, MSR_IA32_VMX_VMFUNC, MSR_LSTAR}}, inner::{data_struct::KPROCESSOR_STATE, KeSaveStateForHibernate}, utils::utils::{__debugbreak, create_end_mask, get_bits_value, set_bits_value}, vmx::{data::vmcs_encoding::VM_INSTRUCTION_ERROR, ins::{__vmx_on, __vmx_vmclear, __vmx_vmlaunch, __vmx_vmptrld, __vmx_vmread}}};
+use crate::{cpu::cpu::{ins::{read_msr, segment_limit, write_cr0, write_cr4}, stru::msr_index::{MSR_IA32_DEBUGCTL, MSR_IA32_FEATURE_CONTROL, MSR_IA32_VMX_BASIC, MSR_IA32_VMX_CR0_FIXED0, MSR_IA32_VMX_CR0_FIXED1, MSR_IA32_VMX_CR4_FIXED0, MSR_IA32_VMX_CR4_FIXED1, MSR_IA32_VMX_PROCBASED_CTLS2, MSR_IA32_VMX_TRUE_ENTRY_CTLS, MSR_IA32_VMX_TRUE_EXIT_CTLS, MSR_IA32_VMX_TRUE_PINBASED_CTLS, MSR_IA32_VMX_TRUE_PROCBASED_CTLS, MSR_IA32_VMX_VMFUNC, MSR_LSTAR}}, inner::{data_struct::KPROCESSOR_STATE, KeSaveStateForHibernate, RtlRestoreContext}, utils::utils::{create_end_mask, get_bits_value, get_current_processor_idx, protect_non_paged_memory, set_bits_value}, vmx::{data::vmcs_encoding::{CR0_GUEST_HOST_MASK, HOST_FS_BASE, HOST_GS_BASE, HOST_TR_BASE, VM_INSTRUCTION_ERROR}, ins::{__vmx_on, __vmx_vmclear, __vmx_vmlaunch, __vmx_vmptrld, __vmx_vmread}}};
 
 use super::{data::{vmcs_encoding::{CPU_BASED_VM_EXEC_CONTROL, CR0_READ_SHADOW, CR4_GUEST_HOST_MASK, CR4_READ_SHADOW, GUEST_CR0, GUEST_CR3, GUEST_CR4, GUEST_CS_AR_BYTES, GUEST_CS_BASE, GUEST_CS_LIMIT, GUEST_CS_SELECTOR, GUEST_DR7, GUEST_DS_AR_BYTES, GUEST_DS_BASE, GUEST_DS_LIMIT, GUEST_DS_SELECTOR, GUEST_ES_AR_BYTES, GUEST_ES_BASE, GUEST_ES_LIMIT, GUEST_ES_SELECTOR, GUEST_FS_AR_BYTES, GUEST_FS_BASE, GUEST_FS_LIMIT, GUEST_FS_SELECTOR, GUEST_GDTR_BASE, GUEST_GDTR_LIMIT, GUEST_GS_AR_BYTES, GUEST_GS_BASE, GUEST_GS_LIMIT, GUEST_GS_SELECTOR, GUEST_IA32_DEBUGCTL, GUEST_IDTR_BASE, GUEST_IDTR_LIMIT, GUEST_LDTR_AR_BYTES, GUEST_LDTR_BASE, GUEST_LDTR_LIMIT, GUEST_LDTR_SELECTOR, GUEST_RFLAGS, GUEST_RIP, GUEST_RSP, GUEST_SS_AR_BYTES, GUEST_SS_BASE, GUEST_SS_LIMIT, GUEST_SS_SELECTOR, GUEST_TR_AR_BYTES, GUEST_TR_BASE, GUEST_TR_LIMIT, GUEST_TR_SELECTOR, HOST_CR0, HOST_CR3, HOST_CR4, HOST_CS_SELECTOR, HOST_DS_SELECTOR, HOST_ES_SELECTOR, HOST_FS_SELECTOR, HOST_GDTR_BASE, HOST_GS_SELECTOR, HOST_IDTR_BASE, HOST_RIP, HOST_RSP, HOST_SS_SELECTOR, HOST_TR_SELECTOR, MSR_BITMAP, PIN_BASED_VM_EXEC_CONTROL, SECONDARY_VM_EXEC_CONTROL, VMCS_LINK_POINTER, VM_ENTRY_CONTROLS, VM_EXIT_CONTROLS}, vmx_cpu_based_controls, vmx_secondary_cpu_based_controls, vmx_vm_enter_controls, vmx_vm_exit_controls}, ins::{VmxInstructionResult, __vmx_off, __vmx_vmwrite}};
-
 
 extern "C"{
     pub fn vmm_entry_point();
 }
-
 
 struct VmcsResources {
     vmxon: *mut VmxVmcs,
@@ -85,7 +83,7 @@ impl Vcpu {
         };
 
         match __vmx_on(phys as _) {
-            VmxInstructionResult::VmxSuccess => {},
+            VmxInstructionResult::VmxSuccess => {}
             _ => {
                 return Err("vmxon execute fault");
             }
@@ -93,21 +91,21 @@ impl Vcpu {
 
         self.vmxon = true;
 
-        // vmclear vmcs
+        // vmclear:unbind current cpu from vmcs
         let phys = unsafe{ 
             &mut MmGetPhysicalAddress(self.vm_resources.vmcs as *mut c_void) as *mut _LARGE_INTEGER
         };
 
         match __vmx_vmclear(phys as _) {
-            VmxInstructionResult::VmxSuccess => {},
+            VmxInstructionResult::VmxSuccess => {}
             _ => {
                 return Err("vmclear execute fault");
             }
         }
 
-        // vmptrld
+        // vmptrld:bind current cpu to vmcs
         match __vmx_vmptrld(phys as _) {
-            VmxInstructionResult::VmxSuccess => {},
+            VmxInstructionResult::VmxSuccess => {}
             _ => {
                 return Err("vmclear execute fault");
             }
@@ -116,10 +114,10 @@ impl Vcpu {
         return Ok(())
     }   
 
-    fn vmxp_adjust_msr(&self,control_value: u64, desired_value: u64) -> u64 {
-        let mut result;
-        result = desired_value & (control_value >> 32);
-        result |= (control_value as u32) as u64;
+    fn vmxp_adjust_msr(&self,control_value: u64, desired_value: u32) -> u32 {
+        let mut result = desired_value.clone();
+        result &= (control_value >> 32) as u32;
+        result |= control_value as u32;
         return result;
     }
 
@@ -168,10 +166,6 @@ impl Vcpu {
             };
         }
 
-        // println!("gdtentry:{:X},{:X},{:X},{:X}",selector,limit,unsafe {
-        //     access_rights.access_rights    
-        // },temp_base);
-
         return GdtEntry64{
             selector,
             limit: limit as _,
@@ -182,23 +176,24 @@ impl Vcpu {
 
     // todo
     fn set_vmcs_data(&mut self) {
-        let vmx_pin = read_msr(MSR_IA32_VMX_TRUE_PINBASED_CTLS);
-        let vmx_cpu = read_msr(MSR_IA32_VMX_TRUE_PROCBASED_CTLS);
+        let vmx_pin: u64 = read_msr(MSR_IA32_VMX_TRUE_PINBASED_CTLS);
+        let vmx_cpu: u64 = read_msr(MSR_IA32_VMX_TRUE_PROCBASED_CTLS);
         //cpu secondary
-        let vmx_sec = read_msr(MSR_IA32_VMX_PROCBASED_CTLS2);
+        let vmx_sec: u64 = read_msr(MSR_IA32_VMX_PROCBASED_CTLS2);
         //VM Exit
-        let vmx_exit = read_msr(MSR_IA32_VMX_TRUE_EXIT_CTLS);
+        let vmx_exit: u64 = read_msr(MSR_IA32_VMX_TRUE_EXIT_CTLS);
         //VM Entry
-        let vmx_entry = read_msr(MSR_IA32_VMX_TRUE_ENTRY_CTLS);
+        let vmx_entry: u64 = read_msr(MSR_IA32_VMX_TRUE_ENTRY_CTLS);
 
-        let mut vm_pin_ctl_requested:u64 = 0;
-        let mut vm_cpu_ctl_requested:u64 = 0;
-        let mut vm_cpu_ctl2_requested:u64 = 0;
-        let mut vm_enter_ctl_requested:u64 = 0;
-        let mut vm_exit_ctl_requested:u64 = 0;
+        let mut vm_pin_ctl_requested:u32 = 0;
+        let mut vm_cpu_ctl_requested:u32 = 0;
+        let mut vm_cpu_ctl2_requested:u32 = 0;
+        let mut vm_enter_ctl_requested:u32 = 0;
+        let mut vm_exit_ctl_requested:u32 = 0;
 
         vm_cpu_ctl_requested |= vmx_cpu_based_controls::ACTIVATE_SECONDARY_CONTROL;
         vm_cpu_ctl_requested |= vmx_cpu_based_controls::USE_MSR_BITMAPS; // msr
+        vm_cpu_ctl_requested |= vmx_cpu_based_controls::USE_TSC_OFFSETING; // combine with rdtscp
 
         vm_cpu_ctl2_requested |= vmx_secondary_cpu_based_controls::ENABLE_RDTSCP;
         vm_cpu_ctl2_requested |= vmx_secondary_cpu_based_controls::ENABLE_INVPCID;
@@ -210,7 +205,7 @@ impl Vcpu {
         vm_exit_ctl_requested |= vmx_vm_exit_controls::HOST_ADDRESS_SPACE_SIZE;
 
 
-        // todo msr bitmap
+        // msr bitmap
         let bit_map_read_low: *mut u32 = self.vm_resources.msr_bitmap as _;
         let bit_map_read_high: *mut u32 = (bit_map_read_low as u64 + 1024) as _;
         let bit_map_write_low: *mut u32 = (bit_map_read_high as u64 + 1024) as _;
@@ -249,36 +244,36 @@ impl Vcpu {
             MmGetPhysicalAddress(self.vm_resources.msr_bitmap).QuadPart as _   
         });
         
-
+        // non root mode execute vmread can get this value
         __vmx_vmwrite(VMCS_LINK_POINTER as _, u64::MAX);
 
-        //Secondary,todo:
+        //Secondary
         __vmx_vmwrite(SECONDARY_VM_EXEC_CONTROL as _,
-            self.vmxp_adjust_msr(vmx_sec, vm_cpu_ctl2_requested)
+            self.vmxp_adjust_msr(vmx_sec, vm_cpu_ctl2_requested) as u64
         );
 
         //PIN
         __vmx_vmwrite(
             PIN_BASED_VM_EXEC_CONTROL as _,
-            self.vmxp_adjust_msr(vmx_pin, vm_pin_ctl_requested)
+            self.vmxp_adjust_msr(vmx_pin, vm_pin_ctl_requested) as u64
         );
 
-        //CPU,todo
+        //CPU
         __vmx_vmwrite(
             CPU_BASED_VM_EXEC_CONTROL as _,
-            self.vmxp_adjust_msr(vmx_cpu, vm_cpu_ctl_requested)
+            self.vmxp_adjust_msr(vmx_cpu, vm_cpu_ctl_requested) as u64
         );
 
         //VM Exit
         __vmx_vmwrite(
             VM_EXIT_CONTROLS as _,
-            self.vmxp_adjust_msr(vmx_exit, vm_exit_ctl_requested)
+            self.vmxp_adjust_msr(vmx_exit, vm_exit_ctl_requested) as u64
         );
 
-        //VM Entry,todo
+        //VM Entry
         __vmx_vmwrite(
             VM_ENTRY_CONTROLS as _,
-            self.vmxp_adjust_msr(vmx_entry, vm_enter_ctl_requested)
+            self.vmxp_adjust_msr(vmx_entry, vm_enter_ctl_requested) as u64
         );
         
         // cs
@@ -290,16 +285,6 @@ impl Vcpu {
         });
         __vmx_vmwrite(GUEST_CS_BASE, gdt_entry.base as _);
         __vmx_vmwrite(HOST_CS_SELECTOR, (self.host_state.context_frame.SegCs & !3) as _);
-
-        // ss
-        let gdt_entry = self.convert_gdt_entry(self.host_state.SpecialRegisters.Gdtr.base, self.host_state.context_frame.SegSs);
-        __vmx_vmwrite(GUEST_SS_SELECTOR, gdt_entry.selector as _);
-        __vmx_vmwrite(GUEST_SS_LIMIT, gdt_entry.limit as _);
-        __vmx_vmwrite(GUEST_SS_AR_BYTES, unsafe {
-            gdt_entry.access_rights.access_rights as _  
-        });
-        __vmx_vmwrite(GUEST_SS_BASE, gdt_entry.base as _);
-        __vmx_vmwrite(HOST_SS_SELECTOR, (self.host_state.context_frame.SegSs & !3) as _);
 
         // ds
         let gdt_entry = self.convert_gdt_entry(self.host_state.SpecialRegisters.Gdtr.base, self.host_state.context_frame.SegDs);
@@ -329,6 +314,7 @@ impl Vcpu {
             gdt_entry.access_rights.access_rights as _  
         });
         __vmx_vmwrite(GUEST_FS_BASE, gdt_entry.base as _);
+        __vmx_vmwrite(HOST_FS_BASE, gdt_entry.base as _);
         __vmx_vmwrite(HOST_FS_SELECTOR, (self.host_state.context_frame.SegFs & !3) as _);
 
         // gs
@@ -338,8 +324,19 @@ impl Vcpu {
         __vmx_vmwrite(GUEST_GS_AR_BYTES, unsafe {
             gdt_entry.access_rights.access_rights as _  
         });
-        __vmx_vmwrite(GUEST_GS_BASE, gdt_entry.base as _);
+        __vmx_vmwrite(GUEST_GS_BASE, self.host_state.SpecialRegisters.MsrGsBase as _); // fuck
+        __vmx_vmwrite(HOST_GS_BASE, self.host_state.SpecialRegisters.MsrGsBase as _);
         __vmx_vmwrite(HOST_GS_SELECTOR, (self.host_state.context_frame.SegGs & !3) as _);
+
+        // ss
+        let gdt_entry = self.convert_gdt_entry(self.host_state.SpecialRegisters.Gdtr.base, self.host_state.context_frame.SegSs);
+        __vmx_vmwrite(GUEST_SS_SELECTOR, gdt_entry.selector as _);
+        __vmx_vmwrite(GUEST_SS_LIMIT, gdt_entry.limit as _);
+        __vmx_vmwrite(GUEST_SS_AR_BYTES, unsafe {
+            gdt_entry.access_rights.access_rights as _  
+        });
+        __vmx_vmwrite(GUEST_SS_BASE, gdt_entry.base as _);
+        __vmx_vmwrite(HOST_SS_SELECTOR, (self.host_state.context_frame.SegSs & !3) as _);
 
         // tr
         let gdt_entry = self.convert_gdt_entry(self.host_state.SpecialRegisters.Gdtr.base, self.host_state.SpecialRegisters.Tr);
@@ -349,9 +346,10 @@ impl Vcpu {
             gdt_entry.access_rights.access_rights as _  
         });
         __vmx_vmwrite(GUEST_TR_BASE, gdt_entry.base as _);
+        __vmx_vmwrite(HOST_TR_BASE, gdt_entry.base as _);
         __vmx_vmwrite(HOST_TR_SELECTOR, (self.host_state.SpecialRegisters.Tr & !3) as _);
 
-        // ldtr todo
+        // ldtr,host no ldtr,only gdt
         let gdt_entry = self.convert_gdt_entry(self.host_state.SpecialRegisters.Gdtr.base, self.host_state.SpecialRegisters.Ldtr);
         __vmx_vmwrite(GUEST_LDTR_SELECTOR, gdt_entry.selector as _);
         __vmx_vmwrite(GUEST_LDTR_LIMIT, gdt_entry.limit as _);
@@ -364,21 +362,22 @@ impl Vcpu {
         __vmx_vmwrite(GUEST_GDTR_BASE, self.host_state.SpecialRegisters.Gdtr.base);
         __vmx_vmwrite(GUEST_GDTR_LIMIT, self.host_state.SpecialRegisters.Gdtr.Limit as _);
         __vmx_vmwrite(HOST_GDTR_BASE, self.host_state.SpecialRegisters.Gdtr.base);
-
+        
         // IDT
         __vmx_vmwrite(GUEST_IDTR_BASE, self.host_state.SpecialRegisters.Idtr.base);
         __vmx_vmwrite(GUEST_IDTR_LIMIT, self.host_state.SpecialRegisters.Idtr.Limit as _);
         __vmx_vmwrite(HOST_IDTR_BASE, self.host_state.SpecialRegisters.Idtr.base);
-
+        
         // CR0
+        __vmx_vmwrite(CR0_GUEST_HOST_MASK, 0xffffffff);
         __vmx_vmwrite(CR0_READ_SHADOW, self.host_state.SpecialRegisters.Cr0);
         __vmx_vmwrite(HOST_CR0, self.host_state.SpecialRegisters.Cr0);
         __vmx_vmwrite(GUEST_CR0, self.host_state.SpecialRegisters.Cr0);
 
-        // cr3
-        __vmx_vmwrite(HOST_CR3,  read_cr3());
-        __vmx_vmwrite(GUEST_CR3, read_cr3());
-
+        // CR3
+        __vmx_vmwrite(HOST_CR3,  self.host_state.SpecialRegisters.Cr3);
+        __vmx_vmwrite(GUEST_CR3, self.host_state.SpecialRegisters.Cr3);
+        
         // CR4
         __vmx_vmwrite(HOST_CR4, self.host_state.SpecialRegisters.Cr4);
         __vmx_vmwrite(GUEST_CR4, self.host_state.SpecialRegisters.Cr4);
@@ -389,7 +388,7 @@ impl Vcpu {
         __vmx_vmwrite(GUEST_IA32_DEBUGCTL, self.host_state.SpecialRegisters.DebugControl);
         __vmx_vmwrite(GUEST_DR7, self.host_state.SpecialRegisters.KernelDr7);
 
-        // guest address after execute vm_launch
+        // guest address after execute vm_launch                   
         __vmx_vmwrite(GUEST_RSP, self.host_state.context_frame.Rsp);
         __vmx_vmwrite(GUEST_RIP, self.host_state.context_frame.Rip);
         __vmx_vmwrite(GUEST_RFLAGS, self.host_state.context_frame.EFlags as _);
@@ -469,8 +468,11 @@ impl Vcpu {
 
         self.vcpu_vmx_state = VcpuVmxState::VmxStateTransition;
 
-        match __vmx_vmlaunch(){
-            VmxInstructionResult::VmxSuccess => todo!(),
+        println!("CPU:{} begin to execute vmlaunch",get_current_processor_idx());
+
+        // vm-entry by execute vmlaunch instruction
+        // from vmm to guest
+        match __vmx_vmlaunch() {
             _ => {
                 // read launch error code
                 let mut error_code:u64 = 0;
@@ -488,10 +490,16 @@ impl Vcpu {
         println!("Vmlaunch error");
 
         // this signifies an error occurrence if reaches next code during execution
-        if self.vmxon{
-            __vmx_off();
-            self.vmxon = false;
-            self.vcpu_vmx_state = VcpuVmxState::VmxStateOff;
+        if self.vmxon {
+            match __vmx_off() {
+                VmxInstructionResult::VmxSuccess => {
+                    self.vmxon = false;
+                    self.vcpu_vmx_state = VcpuVmxState::VmxStateOff;
+                }
+                _ => {
+                    println!("Vmxon execute error");
+                }
+            }
         }
 
     }
@@ -507,21 +515,23 @@ impl Vcpu {
         // continue on next code after execute vmx_on instruction
         unsafe { RtlCaptureContext(context_frame_ptr); }
 
+        println!("After RtlCaptureContext");
+
         match self.vcpu_vmx_state {
             VcpuVmxState::VmxStateOff => {
                 // begin start vt
                 self.subvert_cpu();
             }
             VcpuVmxState::VmxStateTransition => {
+                println!("vmlauch execute successed ");
+
                 // vmlauch execute successed 
-                // todo
-                println!("VmxStateTransition");
                 self.vcpu_vmx_state = VcpuVmxState::VmxStateOn;
+                unsafe{ RtlRestoreContext(&mut self.host_state.context_frame as _,null_mut())};
             },
             VcpuVmxState::VmxStateOn => {
                 // all success
-                let current_cpu_index = unsafe { KeGetCurrentProcessorNumberEx(core::ptr::null_mut()) };
-                println!("CPU:{} start vt success",current_cpu_index);
+                println!("CPU:{} start vt success",get_current_processor_idx());
             },
         }
     }
@@ -575,6 +585,10 @@ impl Vmm {
             unsafe { KeRevertToUserAffinityThread() };
         }
     }
+
+    pub fn get_current_vcpu(&mut self) -> &mut Vcpu {
+        &mut self.vcpu[get_current_processor_idx() as usize]
+    }
     
 }
 
@@ -583,32 +597,18 @@ impl Drop for Vmm {
         for (i,vcpu) in  self.vcpu.iter_mut().enumerate() {
             if vcpu.vmxon {
                 unsafe { KeSetSystemAffinityThread(1 << i) };
-                __vmx_off();
+                match __vmx_off(){
+                    VmxInstructionResult::VmxSuccess => {}
+                    _ => {
+                        println!("Vmxoff execute error");
+                    }
+                }
                 unsafe { KeRevertToUserAffinityThread() };
             }
             vcpu.free_physical_memory();
         }
     }
 }
-
-
-pub fn protect_non_paged_memory(ptr: *mut c_void,size: u64,protection: u32) -> Result<(),& 'static str>{
-    let mdl = unsafe { IoAllocateMdl(ptr,size as _,false as _,false as _,core::ptr::null_mut()) };
-    if mdl.is_null() {
-        return Err("IoAllocateMdl error");
-    }
-
-    unsafe { MmBuildMdlForNonPagedPool(mdl) };
-    unsafe { (*mdl).MdlFlags |= MDL_MAPPED_TO_SYSTEM_VA as i16; } 
-    let status = unsafe { MmProtectMdlSystemAddress(mdl, protection) };
-    unsafe{ IoFreeMdl(mdl) };
-    if !NT_SUCCESS(status) {
-        return Err("MmProtectMdlSystemAddress error");
-    }
-
-    Ok(())
-}
-
 
 #[repr(C)]
 #[derive(Copy,Clone)]
@@ -677,11 +677,11 @@ enum VcpuVmxState {
 #[repr(C)]
 #[derive(Debug)]
 struct VmxVmcs {
-    revision_id: u32, // 版本标识
-    abort_indicator: u32,
-    data: [u8; PAGE_SIZE - 2 * core::mem::size_of::<u32>()], // 4KB大小
+    revision_id: u32, // version
+    abort_indicator: u32, // vmx abort reason. vmx abort:vmexit fault
+    data: [u8; PAGE_SIZE - 2 * core::mem::size_of::<u32>()], // 
 }
-const PAGE_SIZE: usize = 4096; // 假设页大小为4KB
+const PAGE_SIZE: usize = 4096; 
 
 #[allow(dead_code)]
 #[derive(Debug, Default)]

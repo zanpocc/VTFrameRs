@@ -11,15 +11,18 @@ CARGO_MAKE_CARGO_BUILD_TEST_FLAGS = "--profile ${CARGO_MAKE_CARGO_PROFILE}"
 # Cargo puts "dev" profile builds in the "debug" target folder: https://doc.rust-lang.org/cargo/guide/build-cache.html#build-cache. This supports cargo-make profile values of both "development" and "dev"
 OUTPUT_DIR = { source = "${CARGO_MAKE_CARGO_PROFILE}", default_value = "${CARGO_MAKE_CRATE_TARGET_DIRECTORY}\\${CARGO_MAKE_CARGO_PROFILE}", mapping = { "dev" = "${CARGO_MAKE_CRATE_TARGET_DIRECTORY}\\debug" } }
 
+
+# if exist package\%CARGO_MAKE_CRATE_FS_NAME%.sys (
+#   del package\%CARGO_MAKE_CRATE_FS_NAME%.sys
+# )
 [tasks.rename-dll-to-sys]
 dependencies = ["build"]
 script = '''
 echo "%OUTPUT_DIR%"
 cd "%OUTPUT_DIR%"
 mkdir package
-if exist package\%CARGO_MAKE_CRATE_FS_NAME%.sys (
-  del package\%CARGO_MAKE_CRATE_FS_NAME%.sys
-)
+
+del %CARGO_MAKE_CRATE_FS_NAME%.sys
 rename %CARGO_MAKE_CRATE_FS_NAME%.dll %CARGO_MAKE_CRATE_FS_NAME%.sys
 copy %CARGO_MAKE_CRATE_FS_NAME%.sys package\%CARGO_MAKE_CRATE_FS_NAME%.sys
 '''

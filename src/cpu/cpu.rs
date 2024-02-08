@@ -3,6 +3,10 @@ extern crate alloc;
 pub mod ins {
     use core::arch::asm;
 
+    use wdk::println;
+
+    use super::stru::CPUID;
+
     pub fn segment_limit(selector: u64) -> u64 {
         let mut result: u64;
 
@@ -35,8 +39,15 @@ pub mod ins {
         result
     }
 
-    // todo
     pub fn write_msr(msr: u32,value: u64) {
+        unsafe {
+            asm!(
+                "rdmsr",
+                in("ecx") msr,
+                in("rax") value,
+                options(nostack, nomem)
+            );
+        }
     }
 
 
@@ -66,11 +77,17 @@ pub mod ins {
         let mut result: u64;
         unsafe {
             asm!(
+                "xor rax,rax",
                 "mov rax,cr3",
                 out("rax") result,
                 options(nostack, nomem)
             );
         }
+
+        if result == 0{
+            println!("read_cr3 error");
+        }
+
         result
     }
 
@@ -94,6 +111,26 @@ pub mod ins {
                 options(nostack, nomem)
             );
         }
+    }
+
+    pub fn cpuidex(eax: i32,ecx:i32) -> CPUID {
+        let mut result = CPUID::default();
+
+        unsafe {
+            asm!(
+                "cpuid",
+                "mov [rdi],eax",
+                "mov [rdi+4],ebx",
+                "mov [rdi+8],ecx",
+                "mov [rdi+0xc],edx",
+                in("ecx") ecx,
+                in("eax") eax,
+                in("rdi") &mut result,
+                options(nostack, nomem)
+            );
+        }
+
+        result
     }
 }
 
@@ -146,5 +183,38 @@ pub mod stru {
         pub mod ia32_mtrr_def_type_msr {
             pub const MTRR_ENABLE_MASK: u64 = 1 << 11;
         }
+    }
+
+    pub mod eflags {
+        pub const CF: u32 = 0x00000001;
+        pub const RESERVED1: u32 = 0x00000002;
+        pub const PF: u32 = 0x00000004;
+        pub const RESERVED2: u32 = 0x00000008;
+        pub const AF: u32 = 0x00000010;
+        pub const RESERVED3: u32 = 0x00000020;
+        pub const ZF: u32 = 0x00000040;
+        pub const SF: u32 = 0x00000080;
+        pub const TF: u32 = 0x00000100;
+        pub const IF: u32 = 0x00000200;
+        pub const DF: u32 = 0x00000400;
+        pub const OF: u32 = 0x00000800;
+        pub const IOPL: u32 = 0x00003000;
+        pub const NT: u32 = 0x00004000;
+        pub const RESERVED4: u32 = 0x00008000;
+        pub const RF: u32 = 0x00010000;
+        pub const VM: u32 = 0x00020000;
+        pub const AC: u32 = 0x00040000;
+        pub const VIF: u32 = 0x00080000;
+        pub const VIP: u32 = 0x00100000;
+        pub const ID: u32 = 0x00200000;
+        pub const RESERVED5: u32 = 0xFFC00000;
+    }
+
+    #[derive(Default)]
+    pub struct CPUID {
+        pub eax: i32,
+        pub ebx: i32,
+        pub ecx: i32,
+        pub edx: i32,
     }
 }

@@ -111,8 +111,6 @@ pub mod ins {
             );
         }
 
-        println!("vmlaunch result:{}",result);
-
         VmxInstructionResult::from(result)
     }
 
@@ -130,6 +128,10 @@ pub mod ins {
                 out("rax") result,
                 options(nostack, nomem)
             );
+        }
+
+        if result != 0 {
+            println!("__vmx_vmwrite error");
         }
         
         VmxInstructionResult::from(result)
@@ -152,6 +154,19 @@ pub mod ins {
         }
         
         VmxInstructionResult::from(result)
+    }
+
+    pub fn vmcs_read(field: u64) -> u64 {
+        let mut v:u64 = 0;
+        let r = __vmx_vmread(field,&mut v);
+        match r {
+            VmxInstructionResult::VmxSuccess => {
+                return v;
+            },
+            _ => {
+                return 0;
+            }
+        }
     }
 
     pub fn __invept(invept_type: u64,ept_ctx: *mut c_void) -> VmxInstructionResult {

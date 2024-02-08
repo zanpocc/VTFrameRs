@@ -1,9 +1,7 @@
-// 这是一个编译器属性，用于告诉编译器不链接标准库（std）
 #![no_std]
 
 extern crate alloc;
 
-// 需要把用到的mod都加进来，不然编辑器好像会有问题
 pub mod vmx;
 pub mod cpu;
 pub mod device;
@@ -12,19 +10,16 @@ pub mod utils;
 pub mod gd;
 pub mod inner;
 
-// 当 Rust 编译器不处于测试模式时才编译该代码块
-#[cfg(not(test))]
-// panic处理
+// #[cfg(not(test))]
 extern crate wdk_panic;
 
 use device::device::Device;
 use gd::gd::GD;
 use wdk::println;
-// 全局分配器
-#[cfg(not(test))]
+// #[cfg(not(test))]
 use wdk_alloc::WDKAllocator;
 
-#[cfg(not(test))]
+// #[cfg(not(test))]
 #[global_allocator]
 static GLOBAL_ALLOCATOR: WDKAllocator = WDKAllocator;
 
@@ -96,12 +91,11 @@ pub unsafe extern "system" fn driver_entry(
         driver_object.MajorFunction[i as usize] = Some(dispatch_device);
     }
     
-    
-
     status
 }
 
 pub unsafe extern "C" fn driver_unload(_driver: *mut DRIVER_OBJECT) {
     println!("DriverUnload");
+    // clear resources when drvier unload
     __GD.take();
 }

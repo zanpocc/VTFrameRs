@@ -5,7 +5,7 @@ use core::arch::x86_64::__cpuid;
 use wdk::println;
 use wdk_sys::{ntddk::RtlGetVersion, NT_SUCCESS, RTL_OSVERSIONINFOW};
 
-use crate::cpu::cpu::{ins::read_msr, stru::{msr::{ia32_feature_control_msr, ia32_mtrr_def_type_msr}, msr_index::{MSR_IA32_FEATURE_CONTROL, MSR_IA32_MTRR_DEF_TYPE}}};
+use crate::cpu::cpu::{ins::{read_msr, write_msr}, stru::{msr::{ia32_feature_control_msr, ia32_mtrr_def_type_msr}, msr_index::{MSR_IA32_FEATURE_CONTROL, MSR_IA32_MTRR_DEF_TYPE}}};
 
 pub fn check_os_version() -> Result<(), &'static str> {
     // check system version
@@ -55,15 +55,18 @@ pub fn check_vmx_cpu_support() -> Result<(), &'static str> {
     // check vmx support
     let cpuid_result = unsafe { __cpuid(1) };
 
+    // CPUID.1:ECX.VMX[bit 5] = 1
     if cpuid_result.ecx & (1 << 5) == 0 {
         return Err("CPU dont support vt");
     }
 
     // check bios switch
-    let feature_control_msr = read_msr(MSR_IA32_FEATURE_CONTROL);
+    let mut feature_control_msr = read_msr(MSR_IA32_FEATURE_CONTROL);
 
     if (feature_control_msr & ia32_feature_control_msr::LOCK_MASK) == 0 {
-        // todo:写msr,lock、enablevmxon为true,分开做把，就不写在check方法里面了
+        feature_control_msr |= ia32_feature_control_msr::LOCK_MASK;
+        feature_control_msr |= ia32_feature_control_msr::ENABLE_VMXON;
+        write_msr(MSR_IA32_FEATURE_CONTROL, feature_control_msr);
         println!("Start set feature control MSR");
     } else if (feature_control_msr & ia32_feature_control_msr::ENABLE_VMXON) == 0 {
         return Err("BIOS dont enable virtualazation");
