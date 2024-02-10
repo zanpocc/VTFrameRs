@@ -4,9 +4,9 @@ use alloc::vec::Vec;
 use wdk::println;
 use wdk_sys::{ntddk::{KeQueryActiveProcessorCount, KeRevertToUserAffinityThread, KeSetSystemAffinityThread, MmAllocateContiguousMemory, MmFreeContiguousMemory, MmGetPhysicalAddress, RtlCaptureContext, RtlInitializeBitMap, RtlSetBit}, CONTEXT, KERNEL_STACK_SIZE, PAGE_READWRITE, PHYSICAL_ADDRESS, RTL_BITMAP, USHORT, _LARGE_INTEGER};
 
-use crate::{cpu::cpu::{ins::{read_msr, segment_limit, write_cr0, write_cr4}, stru::msr_index::{MSR_IA32_DEBUGCTL, MSR_IA32_FEATURE_CONTROL, MSR_IA32_VMX_BASIC, MSR_IA32_VMX_CR0_FIXED0, MSR_IA32_VMX_CR0_FIXED1, MSR_IA32_VMX_CR4_FIXED0, MSR_IA32_VMX_CR4_FIXED1, MSR_IA32_VMX_PROCBASED_CTLS2, MSR_IA32_VMX_TRUE_ENTRY_CTLS, MSR_IA32_VMX_TRUE_EXIT_CTLS, MSR_IA32_VMX_TRUE_PINBASED_CTLS, MSR_IA32_VMX_TRUE_PROCBASED_CTLS, MSR_IA32_VMX_VMFUNC, MSR_LSTAR}}, inner::{data_struct::KPROCESSOR_STATE, KeSaveStateForHibernate, RtlRestoreContext}, utils::utils::{create_end_mask, get_bits_value, get_current_processor_idx, protect_non_paged_memory, set_bits_value}, vmx::{data::vmcs_encoding::{CR0_GUEST_HOST_MASK, HOST_FS_BASE, HOST_GS_BASE, HOST_TR_BASE, VM_INSTRUCTION_ERROR}, ins::{__vmx_on, __vmx_vmclear, __vmx_vmlaunch, __vmx_vmptrld, __vmx_vmread}}};
+use crate::{cpu::cpu::{ins::{read_msr, segment_limit, write_cr0, write_cr4}, stru::msr_index::{MSR_IA32_DEBUGCTL, MSR_IA32_FEATURE_CONTROL, MSR_IA32_VMX_BASIC, MSR_IA32_VMX_CR0_FIXED0, MSR_IA32_VMX_CR0_FIXED1, MSR_IA32_VMX_CR4_FIXED0, MSR_IA32_VMX_CR4_FIXED1, MSR_IA32_VMX_PROCBASED_CTLS2, MSR_IA32_VMX_TRUE_ENTRY_CTLS, MSR_IA32_VMX_TRUE_EXIT_CTLS, MSR_IA32_VMX_TRUE_PINBASED_CTLS, MSR_IA32_VMX_TRUE_PROCBASED_CTLS, MSR_IA32_VMX_VMFUNC, MSR_LSTAR}}, inner::{data_struct::KPROCESSOR_STATE, KeSaveStateForHibernate, RtlRestoreContext}, utils::utils::{__debugbreak, create_end_mask, get_bits_value, get_current_processor_idx, protect_non_paged_memory, set_bits_value}, vmx::{data::vmcs_encoding::{CR0_GUEST_HOST_MASK, HOST_FS_BASE, HOST_GS_BASE, HOST_TR_BASE, VM_INSTRUCTION_ERROR}, ins::{__vmx_on, __vmx_vmclear, __vmx_vmlaunch, __vmx_vmptrld, __vmx_vmread}}};
 
-use super::{data::{vmcs_encoding::{CPU_BASED_VM_EXEC_CONTROL, CR0_READ_SHADOW, CR4_GUEST_HOST_MASK, CR4_READ_SHADOW, GUEST_CR0, GUEST_CR3, GUEST_CR4, GUEST_CS_AR_BYTES, GUEST_CS_BASE, GUEST_CS_LIMIT, GUEST_CS_SELECTOR, GUEST_DR7, GUEST_DS_AR_BYTES, GUEST_DS_BASE, GUEST_DS_LIMIT, GUEST_DS_SELECTOR, GUEST_ES_AR_BYTES, GUEST_ES_BASE, GUEST_ES_LIMIT, GUEST_ES_SELECTOR, GUEST_FS_AR_BYTES, GUEST_FS_BASE, GUEST_FS_LIMIT, GUEST_FS_SELECTOR, GUEST_GDTR_BASE, GUEST_GDTR_LIMIT, GUEST_GS_AR_BYTES, GUEST_GS_BASE, GUEST_GS_LIMIT, GUEST_GS_SELECTOR, GUEST_IA32_DEBUGCTL, GUEST_IDTR_BASE, GUEST_IDTR_LIMIT, GUEST_LDTR_AR_BYTES, GUEST_LDTR_BASE, GUEST_LDTR_LIMIT, GUEST_LDTR_SELECTOR, GUEST_RFLAGS, GUEST_RIP, GUEST_RSP, GUEST_SS_AR_BYTES, GUEST_SS_BASE, GUEST_SS_LIMIT, GUEST_SS_SELECTOR, GUEST_TR_AR_BYTES, GUEST_TR_BASE, GUEST_TR_LIMIT, GUEST_TR_SELECTOR, HOST_CR0, HOST_CR3, HOST_CR4, HOST_CS_SELECTOR, HOST_DS_SELECTOR, HOST_ES_SELECTOR, HOST_FS_SELECTOR, HOST_GDTR_BASE, HOST_GS_SELECTOR, HOST_IDTR_BASE, HOST_RIP, HOST_RSP, HOST_SS_SELECTOR, HOST_TR_SELECTOR, MSR_BITMAP, PIN_BASED_VM_EXEC_CONTROL, SECONDARY_VM_EXEC_CONTROL, VMCS_LINK_POINTER, VM_ENTRY_CONTROLS, VM_EXIT_CONTROLS}, vmx_cpu_based_controls, vmx_secondary_cpu_based_controls, vmx_vm_enter_controls, vmx_vm_exit_controls}, ins::{VmxInstructionResult, __vmx_off, __vmx_vmwrite}};
+use super::{data::{vm_call::VM_CALL_CLOSE_VT, vmcs_encoding::{CPU_BASED_VM_EXEC_CONTROL, CR0_READ_SHADOW, CR4_GUEST_HOST_MASK, CR4_READ_SHADOW, GUEST_CR0, GUEST_CR3, GUEST_CR4, GUEST_CS_AR_BYTES, GUEST_CS_BASE, GUEST_CS_LIMIT, GUEST_CS_SELECTOR, GUEST_DR7, GUEST_DS_AR_BYTES, GUEST_DS_BASE, GUEST_DS_LIMIT, GUEST_DS_SELECTOR, GUEST_ES_AR_BYTES, GUEST_ES_BASE, GUEST_ES_LIMIT, GUEST_ES_SELECTOR, GUEST_FS_AR_BYTES, GUEST_FS_BASE, GUEST_FS_LIMIT, GUEST_FS_SELECTOR, GUEST_GDTR_BASE, GUEST_GDTR_LIMIT, GUEST_GS_AR_BYTES, GUEST_GS_BASE, GUEST_GS_LIMIT, GUEST_GS_SELECTOR, GUEST_IA32_DEBUGCTL, GUEST_IDTR_BASE, GUEST_IDTR_LIMIT, GUEST_LDTR_AR_BYTES, GUEST_LDTR_BASE, GUEST_LDTR_LIMIT, GUEST_LDTR_SELECTOR, GUEST_RFLAGS, GUEST_RIP, GUEST_RSP, GUEST_SS_AR_BYTES, GUEST_SS_BASE, GUEST_SS_LIMIT, GUEST_SS_SELECTOR, GUEST_TR_AR_BYTES, GUEST_TR_BASE, GUEST_TR_LIMIT, GUEST_TR_SELECTOR, HOST_CR0, HOST_CR3, HOST_CR4, HOST_CS_SELECTOR, HOST_DS_SELECTOR, HOST_ES_SELECTOR, HOST_FS_SELECTOR, HOST_GDTR_BASE, HOST_GS_SELECTOR, HOST_IDTR_BASE, HOST_RIP, HOST_RSP, HOST_SS_SELECTOR, HOST_TR_SELECTOR, MSR_BITMAP, PIN_BASED_VM_EXEC_CONTROL, SECONDARY_VM_EXEC_CONTROL, VMCS_LINK_POINTER, VM_ENTRY_CONTROLS, VM_EXIT_CONTROLS}, vmx_cpu_based_controls, vmx_secondary_cpu_based_controls, vmx_vm_enter_controls, vmx_vm_exit_controls}, ins::{VmxInstructionResult, __vmx_off, __vmx_vmcall, __vmx_vmwrite}};
 
 extern "C"{
     pub fn vmm_entry_point();
@@ -20,6 +20,7 @@ struct VmcsResources {
 }
 
 pub struct Vcpu {
+    cpu_index: usize,
     host_state: KPROCESSOR_STATE,
     vcpu_vmx_state: VcpuVmxState,
     vm_resources: VmcsResources,
@@ -33,6 +34,18 @@ pub struct Vmm {
 }
 
 impl Vcpu {
+    pub fn close_vt(&mut self) {
+        println!("Close VT");
+        match __vmx_vmcall(VM_CALL_CLOSE_VT,0,0,0) {
+            VmxInstructionResult::VmxSuccess => {
+                println!("Vmxcall success");
+            },
+            _ => {
+                println!("Vmxcall execute error");
+            },
+        }
+    }
+
     // free vmm relate physical memory self
     pub fn free_physical_memory(&mut self) {
         println!("free_physical_memory");
@@ -240,9 +253,9 @@ impl Vcpu {
             }
         }
 
-        __vmx_vmwrite(MSR_BITMAP, unsafe {
-            MmGetPhysicalAddress(self.vm_resources.msr_bitmap).QuadPart as _   
-        });
+        // __vmx_vmwrite(MSR_BITMAP, unsafe {
+        //     MmGetPhysicalAddress(self.vm_resources.msr_bitmap).QuadPart as _   
+        // });
         
         // non root mode execute vmread can get this value
         __vmx_vmwrite(VMCS_LINK_POINTER as _, u64::MAX);
@@ -535,6 +548,46 @@ impl Vcpu {
             },
         }
     }
+
+    pub fn set_vmx_state(&mut self,state: VcpuVmxState) {
+        self.vcpu_vmx_state = state;
+        if self.vcpu_vmx_state == VcpuVmxState::VmxStateOff{
+            self.vmxon = false;
+        }
+    }
+
+    pub fn set_cpu_index(&mut self,index: usize) {
+        self.cpu_index = index;
+    }
+   
+}
+
+
+impl Drop for Vcpu {
+    fn drop(&mut self) {
+        println!("VCPU Drop");
+
+        match self.vcpu_vmx_state {
+            VcpuVmxState::VmxStateOn => {
+                // self.close_vt();
+            },
+            _ => {
+                if self.vmxon {
+                    unsafe { KeSetSystemAffinityThread(1 << self.cpu_index) };
+                    println!("vmxoff exec");
+                    match __vmx_off(){
+                        VmxInstructionResult::VmxSuccess => {}
+                        _ => {
+                            println!("Vmxoff execute error");
+                        }
+                    }
+                    unsafe { KeRevertToUserAffinityThread() };
+                }
+            }
+        }
+      
+        self.free_physical_memory();
+    }
 }
 
 impl Vmm {
@@ -558,6 +611,7 @@ impl Vmm {
                     msr_bitmap: core::ptr::null_mut(),
                 },
                 vmxon: false,
+                cpu_index: 0,
             };
             vcpus.push(vcpu);
         }
@@ -581,6 +635,8 @@ impl Vmm {
         for i in 0..self.cpu_count {
             unsafe { KeSetSystemAffinityThread(1 << i) };
             let vcpu = &mut self.vcpu[i as usize];
+            println!("{} == {}",i,get_current_processor_idx());
+            vcpu.set_cpu_index(i as _);
             vcpu.start_vt();
             unsafe { KeRevertToUserAffinityThread() };
         }
@@ -594,19 +650,7 @@ impl Vmm {
 
 impl Drop for Vmm {
     fn drop(&mut self) {
-        for (i,vcpu) in  self.vcpu.iter_mut().enumerate() {
-            if vcpu.vmxon {
-                unsafe { KeSetSystemAffinityThread(1 << i) };
-                match __vmx_off(){
-                    VmxInstructionResult::VmxSuccess => {}
-                    _ => {
-                        println!("Vmxoff execute error");
-                    }
-                }
-                unsafe { KeRevertToUserAffinityThread() };
-            }
-            vcpu.free_physical_memory();
-        }
+        println!("Vmm Drop,do nothing");
     }
 }
 
@@ -667,8 +711,8 @@ union KGDTENTRY64 {
 }
 
 
-#[derive(Debug)]
-enum VcpuVmxState {
+#[derive(Debug,PartialEq, Eq)]
+pub enum VcpuVmxState {
     VmxStateOff,        // 未虚拟化
     VmxStateTransition, // 虚拟化中，还未恢复上下文
     VmxStateOn,         // 虚拟化成功

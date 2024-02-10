@@ -5,14 +5,14 @@ pub mod gd {
     use crate::{device::{device::Device, symbolic_link::SymbolicLink}, vmx::vmx::Vmm};
 
     pub struct GD {
+        pub vmx_data: Option<Vmm>,
         pub device: Option<Device>,
         pub symbolic_link: Option<SymbolicLink>,
-        pub vmx_data: Option<Vmm>,
     }
 
     impl Drop for GD {
         fn drop(&mut self) {
-            println!("GD drop");
+            println!("Start drop GD");
         }
     }
 

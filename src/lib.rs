@@ -13,6 +13,8 @@ pub mod inner;
 // #[cfg(not(test))]
 extern crate wdk_panic;
 
+use core::arch::asm;
+
 use device::device::Device;
 use gd::gd::GD;
 use wdk::println;
@@ -91,11 +93,18 @@ pub unsafe extern "system" fn driver_entry(
         driver_object.MajorFunction[i as usize] = Some(dispatch_device);
     }
     
+    __GD.as_mut().unwrap().vmx_data.as_mut().unwrap().get_current_vcpu().close_vt();
+    __GD.take();
+
     status
 }
 
 pub unsafe extern "C" fn driver_unload(_driver: *mut DRIVER_OBJECT) {
     println!("DriverUnload");
+    
+    // __GD.as_mut().unwrap().vmx_data.as_mut().unwrap().get_current_vcpu().close_vt();
+
     // clear resources when drvier unload
-    __GD.take();
+    
+
 }

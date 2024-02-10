@@ -1,21 +1,22 @@
-use core::{arch::{asm, global_asm, x86_64::__cpuid}, borrow::BorrowMut};
+use core::arch::{asm, global_asm};
 
 use wdk::println;
-use wdk_sys::ntddk::{KeGetCurrentIrql, __cpuidex};
+use wdk_sys::ntddk::KeGetCurrentIrql;
 
-use crate::{cpu::cpu::{ins::cpuidex, stru::CPUID}, gd, utils::utils::get_current_processor_idx, vmx::{data::vmcs_encoding::{EXIT_QUALIFICATION, GUEST_LINEAR_ADDRESS, GUEST_PHYSICAL_ADDRESS, GUEST_RFLAGS, GUEST_RIP, GUEST_RSP, VM_EXIT_REASON}, ins::vmcs_read}, __GD};
+use crate::{cpu::cpu::ins::cpuidex, utils::utils::__debugbreak, vmx::{data::vmcs_encoding::{EXIT_QUALIFICATION, GUEST_LINEAR_ADDRESS, GUEST_PHYSICAL_ADDRESS, GUEST_RFLAGS, GUEST_RIP, GUEST_RSP, VM_EXIT_REASON}, ins::vmcs_read}, __GD};
 
-use super::{data::vmcs_encoding::VM_EXIT_INSTRUCTION_LEN, ins::__vmx_vmwrite, vmx::Vcpu};
+use super::{data::{exit_reason::{EXIT_REASON_CPUID, EXIT_REASON_VMCALL}, vmcs_encoding::VM_EXIT_INSTRUCTION_LEN}, ins::{VmxInstructionResult, __vmx_off, __vmx_vmwrite}, vmx::{Vcpu, VcpuVmxState}};
 
 global_asm!(r#"
 .section .text
 
 .macro pushaq
+    push    -1      // rsp
     push    rax
     push    rcx
     push    rdx
     push    rbx
-    push    -1     
+    
     push    rbp
     push    rsi
     push    rdi
@@ -42,11 +43,30 @@ global_asm!(r#"
     pop     rdi
     pop     rsi
     pop     rbp
-    add     rsp, 8   
+       
     pop     rbx
     pop     rdx
     pop     rcx
     pop     rax
+    add     rsp, 8  // rsp
+.endm
+
+.macro popaq_exit
+    pop     r15
+    pop     r14
+    pop     r13
+    pop     r12
+    pop     r11
+    pop     r10
+    pop     r9
+    pop     r8
+    pop     rdi
+    pop     rsi
+    pop     rbp
+       
+    pop     rbx
+    pop     rdx
+    pop     rcx
 .endm
 
 vmm_entry_point:
@@ -73,12 +93,20 @@ vmm_entry_point:
     movaps xmm5, [rsp + 0x50]
     add rsp, 0x60
 
+    cmp rax, 0
+    jne exit_branch
+    
     popaq
-
     vmresume
-
     int 3
 
+exit_branch:
+    popaq_exit
+    add rsp, 8      // rax
+    pop rsp         // rsp
+    jmp rax         // guest_rip
+
+    int 3
 "#,sym vmx_exit_handler);
 
 
@@ -96,11 +124,12 @@ struct Context {
     rdi: u64,
     rsi: u64,
     rbp: u64,
-    rsp: u64,
+    
     rbx: u64,
     rdx: u64,
     rcx: u64,
     rax: u64,
+    rsp: u64,
 }
 
 struct GuestState
@@ -137,7 +166,22 @@ fn vm_exit_cpuid(guest_state: &mut GuestState) {
     vmx_advance_eip(guest_state);
 }
 
-pub extern "C" fn vmx_exit_handler(context: &mut Context) {
+fn vm_exit_vmcall(guest_state: &mut GuestState) {
+    //获取第一个参数，功能类型编号
+    match unsafe { guest_state.guest_regs.as_ref().unwrap().rcx } & 0xFFFF {
+        VM_CALL_UNLOAD => { 
+            guest_state.exit_pending = true;
+            return;
+        }
+        _ =>{
+            println!("Unknown vmcall command");
+        }
+    }
+
+    vmx_advance_eip(guest_state);
+}
+
+extern "C" fn vmx_exit_handler(context: &mut Context) -> u64 {
 
     let gd = unsafe { __GD.as_mut().unwrap() };
 
@@ -156,8 +200,12 @@ pub extern "C" fn vmx_exit_handler(context: &mut Context) {
     };
 
     match guest_state.exit_reason {
-        _exit_reason_cpuid => {
+        EXIT_REASON_CPUID => {
             vm_exit_cpuid(&mut guest_state);
+        },
+        EXIT_REASON_VMCALL => {
+            println!("guest_rsp:{:X}",guest_state.guest_rsp);
+            vm_exit_vmcall(&mut guest_state);
         }
         _ => {
             println!("exit_reason:{}",guest_state.exit_reason);
@@ -171,6 +219,21 @@ pub extern "C" fn vmx_exit_handler(context: &mut Context) {
     }
 
     if !guest_state.exit_pending{
-        return;
+        return 0;
     }
+
+    let ins_len = vmcs_read(VM_EXIT_INSTRUCTION_LEN);
+    unsafe{ guest_state.guest_regs.as_mut().unwrap().rsp = guest_state.guest_rsp };
+
+    if __vmx_off() != VmxInstructionResult::VmxSuccess {
+        println!("vmx_off execute error");
+        __debugbreak();
+    }
+
+    println!("vmxoff success");
+        
+    let vcpu = unsafe { guest_state.vcpu.as_mut().unwrap() };
+    vcpu.set_vmx_state(VcpuVmxState::VmxStateOff);
+
+    return guest_state.guest_rip + ins_len;
 }

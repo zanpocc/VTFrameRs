@@ -214,3 +214,80 @@ pub(crate) mod vmcs_encoding {
     pub const HOST_RSP: u64 = 0x00006c14;
     pub const HOST_RIP: u64 = 0x00006c16;
 }
+
+#[allow(dead_code)]
+pub(crate) mod exit_reason{
+    pub const EXIT_REASON_EXCEPTION_NMI: u16 = 0;
+    pub const EXIT_REASON_EXTERNAL_INTERRUPT: u16 = 1;
+    pub const EXIT_REASON_TRIPLE_FAULT: u16 = 2;
+    pub const EXIT_REASON_INIT: u16 = 3;
+    pub const EXIT_REASON_SIPI: u16 = 4;
+    pub const EXIT_REASON_IO_SMI: u16 = 5;
+    pub const EXIT_REASON_OTHER_SMI: u16 = 6;
+    pub const EXIT_REASON_PENDING_INTERRUPT: u16 = 7;
+    pub const EXIT_REASON_NMI_WINDOW: u16 = 8;
+    pub const EXIT_REASON_TASK_SWITCH: u16 = 9;
+    pub const EXIT_REASON_CPUID: u16 = 10;
+    pub const EXIT_REASON_GETSEC: u16 = 11;
+    pub const EXIT_REASON_HLT: u16 = 12;
+    pub const EXIT_REASON_INVD: u16 = 13;
+    pub const EXIT_REASON_INVLPG: u16 = 14;
+    pub const EXIT_REASON_RDPMC: u16 = 15;
+    pub const EXIT_REASON_RDTSC: u16 = 16;
+    pub const EXIT_REASON_RSM: u16 = 17;
+    pub const EXIT_REASON_VMCALL: u16 = 18;
+    pub const EXIT_REASON_VMCLEAR: u16 = 19;
+    pub const EXIT_REASON_VMLAUNCH: u16 = 20;
+    pub const EXIT_REASON_VMPTRLD: u16 = 21;
+    pub const EXIT_REASON_VMPTRST: u16 = 22;
+    pub const EXIT_REASON_VMREAD: u16 = 23;
+    pub const EXIT_REASON_VMRESUME: u16 = 24;
+    pub const EXIT_REASON_VMWRITE: u16 = 25;
+    pub const EXIT_REASON_VMXOFF: u16 = 26;
+    pub const EXIT_REASON_VMXON: u16 = 27;
+    pub const EXIT_REASON_CR_ACCESS: u16 = 28;
+    pub const EXIT_REASON_DR_ACCESS: u16 = 29;
+    pub const EXIT_REASON_IO_INSTRUCTION: u16 = 30;
+    pub const EXIT_REASON_MSR_READ: u16 = 31;
+    pub const EXIT_REASON_MSR_WRITE: u16 = 32;
+    pub const EXIT_REASON_INVALID_GUEST_STATE: u16 = 33;
+    pub const EXIT_REASON_MSR_LOADING: u16 = 34;
+    pub const EXIT_REASON_RESERVED_35: u16 = 35;
+    pub const EXIT_REASON_MWAIT_INSTRUCTION: u16 = 36;
+    pub const EXIT_REASOM_MTF: u16 = 37;
+    pub const EXIT_REASON_RESERVED_38: u16 = 38;
+    pub const EXIT_REASON_MONITOR_INSTRUCTION: u16 = 39;
+    pub const EXIT_REASON_PAUSE_INSTRUCTION: u16 = 40;
+    pub const EXIT_REASON_MACHINE_CHECK: u16 = 41;
+    pub const EXIT_REASON_RESERVED_42: u16 = 42;
+    pub const EXIT_REASON_TPR_BELOW_THRESHOLD: u16 = 43;
+    pub const EXIT_REASON_APIC_ACCESS: u16 = 44;
+    pub const EXIT_REASON_VIRTUALIZED_EIO: u16 = 45;
+    pub const EXIT_REASON_XDTR_ACCESS: u16 = 46;
+    pub const EXIT_REASON_TR_ACCESS: u16 = 47;
+    pub const EXIT_REASON_EPT_VIOLATION: u16 = 48;
+    pub const EXIT_REASON_EPT_MISCONFIG: u16 = 49;
+    pub const EXIT_REASON_INVEPT: u16 = 50;
+    pub const EXIT_REASON_RDTSCP: u16 = 51;
+    pub const EXIT_REASON_PREEMPT_TIMER: u16 = 52;
+    pub const EXIT_REASON_INVVPID: u16 = 53;
+    pub const EXIT_REASON_WBINVD: u16 = 54;
+    pub const EXIT_REASON_XSETBV: u16 = 55;
+    pub const EXIT_REASON_APIC_WRITE: u16 = 56;
+    pub const EXIT_REASON_RDRAND: u16 = 57;
+    pub const EXIT_REASON_INVPCID: u16 = 58;
+    pub const EXIT_REASON_VMFUNC: u16 = 59;
+    pub const EXIT_REASON_RESERVED_60: u16 = 60;
+    pub const EXIT_REASON_RDSEED: u16 = 61;
+    pub const EXIT_REASON_RESERVED_62: u16 = 62;
+    pub const EXIT_REASON_XSAVES: u16 = 63;
+    pub const EXIT_REASON_XRSTORS: u16 = 64;
+
+    pub const VMX_MAX_GUEST_VMEXIT: u16 = 65;
+
+}
+
+pub(crate) mod vm_call{
+    // close vt
+    pub const VM_CALL_CLOSE_VT: u64 = 1;
+}

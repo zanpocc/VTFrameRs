@@ -8,7 +8,7 @@ pub mod ins {
 
     use wdk::println;
 
-    #[derive(Debug)]
+    #[derive(Debug,PartialEq, Eq)]
     pub enum VmxInstructionResult {
         VmxSuccess = 0,
         VmxFailValid = 1,
@@ -167,6 +167,28 @@ pub mod ins {
                 return 0;
             }
         }
+    }
+
+    pub fn __vmx_vmcall(vmcall_no: u64,arg1: u64,arg2: u64,arg3: u64) -> VmxInstructionResult {
+        let mut result:u64 = 0;
+        unsafe {
+            asm!(
+                "xor rax,rax",
+                "vmcall",
+                "setc al",
+	            "setz cl",
+	            "adc al,cl",
+                in("rcx") vmcall_no,
+                in("rdx") arg1,
+                in("r8") arg2,
+                in("r9") arg3,
+                out("rax") result,
+                options(nostack, nomem)
+            );
+        }
+        
+        println!("rax:{:X}",result);
+        VmxInstructionResult::from(0)
     }
 
     pub fn __invept(invept_type: u64,ept_ctx: *mut c_void) -> VmxInstructionResult {
