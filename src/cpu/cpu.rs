@@ -167,6 +167,23 @@ pub mod stru {
         pub const MSR_SHADOW_GS_BASE: u32 = 0xC0000102; // SwapGS GS shadow
 
         pub const MSR_IA32_MTRR_DEF_TYPE: u32 = 0x000002FF;
+
+
+        // vmware
+        pub const VMWARE_MSR: u32 = 0x400000b1;
+        pub const VMWARE_MSR2: u32 = 0x40000105;
+        pub const VMWARE_MSR3: u32 = 0x400000b0;
+        pub const VMWARE_MSR4: u32 = 0x40000100;
+
+
+        // RW will #GP
+        pub const MSR_RESERVED_MIN: u32 = 0x40000000; // Reserved MSR Address Space Min
+        //pub const MSR_RESERVED_MAX: u32 =	0x400000FF; // Reserved MSR Address Space Max
+        pub const MSR_RESERVED_MAX: u32 = 0xC0000079; // Reserved MSR Address Space Max
+
+        pub const MSR_UNKNOWN:u32 = 0xc0002fff;
+        pub const MSR_UNKNOWN2:u32 = 0x00002fff;
+
     }
 
     pub mod msr {

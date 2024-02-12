@@ -1,11 +1,11 @@
 use core::arch::{asm, global_asm};
 
 use wdk::println;
-use wdk_sys::ntddk::KeGetCurrentIrql;
+use wdk_sys::{ntddk::KeGetCurrentIrql, LARGE_INTEGER};
 
-use crate::{cpu::cpu::ins::cpuidex, utils::utils::__debugbreak, vmx::{data::vmcs_encoding::{EXIT_QUALIFICATION, GUEST_LINEAR_ADDRESS, GUEST_PHYSICAL_ADDRESS, GUEST_RFLAGS, GUEST_RIP, GUEST_RSP, VM_EXIT_REASON}, ins::vmcs_read}, __GD};
+use crate::{cpu::cpu::{ins::{cpuidex, read_msr, write_msr}, stru::{msr::{self, ia32_feature_control_msr::{ENABLE_VMXON, LOCK_MASK}}, msr_index::{MSR_FS_BASE, MSR_GS_BASE, MSR_IA32_DEBUGCTL, MSR_IA32_FEATURE_CONTROL, MSR_IA32_VMX_BASIC, MSR_IA32_VMX_VMFUNC, MSR_RESERVED_MAX, MSR_RESERVED_MIN, MSR_UNKNOWN, MSR_UNKNOWN2, VMWARE_MSR, VMWARE_MSR2, VMWARE_MSR3, VMWARE_MSR4}}}, utils::utils::__debugbreak, vmx::{data::vmcs_encoding::{EXIT_QUALIFICATION, GUEST_LINEAR_ADDRESS, GUEST_PHYSICAL_ADDRESS, GUEST_RFLAGS, GUEST_RIP, GUEST_RSP, VM_EXIT_REASON}, ins::vmcs_read}, __GD};
 
-use super::{data::{exit_reason::{EXIT_REASON_CPUID, EXIT_REASON_VMCALL}, vmcs_encoding::VM_EXIT_INSTRUCTION_LEN}, ins::{VmxInstructionResult, __vmx_off, __vmx_vmwrite}, vmx::{Vcpu, VcpuVmxState}};
+use super::{data::{exit_reason::{EXIT_REASON_CPUID, EXIT_REASON_MSR_READ, EXIT_REASON_MSR_WRITE, EXIT_REASON_VMCALL}, vm_call::VM_CALL_CLOSE_VT, vmcs_encoding::{self, GUEST_FS_BASE, GUEST_GS_BASE, GUEST_IA32_DEBUGCTL, VM_EXIT_INSTRUCTION_LEN}}, ins::{VmxInstructionResult, __vmx_off, __vmx_vmwrite}};
 
 global_asm!(r#"
 .section .text
@@ -135,7 +135,7 @@ struct Context {
 struct GuestState
 {
 	guest_regs: *mut Context,
-	vcpu: *mut Vcpu,
+	// vcpu: *mut Vcpu,
     guest_rip: u64,
     guest_rsp: u64,
     guest_rflags: u64,
@@ -169,7 +169,7 @@ fn vm_exit_cpuid(guest_state: &mut GuestState) {
 fn vm_exit_vmcall(guest_state: &mut GuestState) {
     //获取第一个参数，功能类型编号
     match unsafe { guest_state.guest_regs.as_ref().unwrap().rcx } & 0xFFFF {
-        VM_CALL_UNLOAD => { 
+        VM_CALL_CLOSE_VT => { 
             guest_state.exit_pending = true;
             return;
         }
@@ -181,13 +181,105 @@ fn vm_exit_vmcall(guest_state: &mut GuestState) {
     vmx_advance_eip(guest_state);
 }
 
-extern "C" fn vmx_exit_handler(context: &mut Context) -> u64 {
+fn vm_exit_msr_read(guest_state: &mut GuestState) {
+    
+    let mut msr_value = LARGE_INTEGER::default();
 
-    let gd = unsafe { __GD.as_mut().unwrap() };
+    let ecx: u32 = unsafe { guest_state.guest_regs.as_mut().unwrap().rcx } as u32;
+
+    match ecx {
+        MSR_GS_BASE => {
+            msr_value.QuadPart = vmcs_read(GUEST_GS_BASE) as _;
+        }
+        MSR_FS_BASE => {
+            msr_value.QuadPart = vmcs_read(GUEST_FS_BASE) as _;
+        }
+        MSR_IA32_DEBUGCTL => {
+            msr_value.QuadPart = vmcs_read(GUEST_IA32_DEBUGCTL) as _;
+        }
+        MSR_IA32_FEATURE_CONTROL => {
+            msr_value.QuadPart = vmcs_read(ecx as _) as _;
+            unsafe{
+                msr_value.QuadPart |= ENABLE_VMXON as i64;
+                msr_value.QuadPart |= LOCK_MASK as i64;
+            }
+        }
+        MSR_IA32_VMX_BASIC..=MSR_IA32_VMX_VMFUNC => {
+            // todo vmx msr
+            println!("vmx msr:{}",ecx);
+        }
+        VMWARE_MSR2 => {
+            msr_value.QuadPart = read_msr(ecx as _) as _;
+        }
+        _ => {
+            if ecx >= MSR_RESERVED_MIN && ecx <= MSR_RESERVED_MAX {
+                // todo inject event
+            } else if ecx == MSR_UNKNOWN || ecx == MSR_UNKNOWN2 {
+                // todo inject event
+            }
+
+            msr_value.QuadPart = read_msr(ecx) as _;
+        }
+    }
+
+    unsafe{
+        guest_state.guest_regs.as_mut().unwrap().rax = msr_value.u.LowPart as _;
+        guest_state.guest_regs.as_mut().unwrap().rdx = msr_value.u.HighPart as _;
+    }
+     
+     vmx_advance_eip(guest_state);
+
+}
+
+fn vm_exit_msr_write(guest_state: &mut GuestState) {
+    let mut msr_value = LARGE_INTEGER::default();
+    let ecx: u32 = unsafe { guest_state.guest_regs.as_mut().unwrap().rcx } as u32;
+
+    unsafe{
+        msr_value.u.LowPart = guest_state.guest_regs.as_ref().unwrap().rax as _;
+        msr_value.u.HighPart = guest_state.guest_regs.as_ref().unwrap().rdx as _;
+    }
+
+    match ecx {
+        MSR_GS_BASE => {
+            write_msr(GUEST_GS_BASE as _, unsafe{msr_value.QuadPart} as _);
+        }
+        MSR_FS_BASE => {
+            write_msr(GUEST_FS_BASE as _, unsafe{msr_value.QuadPart} as _);
+        }
+        MSR_IA32_DEBUGCTL => {
+            unsafe{
+                __vmx_vmwrite(GUEST_IA32_DEBUGCTL, msr_value.QuadPart as _);
+                write_msr(MSR_IA32_DEBUGCTL, msr_value.QuadPart as _);
+            }
+        }
+        MSR_IA32_VMX_BASIC..=MSR_IA32_VMX_VMFUNC => {
+            // todo vmx msr
+            println!("vmx msr:{}",ecx);
+        }   
+        VMWARE_MSR | VMWARE_MSR3 | VMWARE_MSR4 => {
+            write_msr(ecx as _, unsafe{ msr_value.QuadPart } as _);
+        }
+        _ => {
+            if ecx >= MSR_RESERVED_MIN && ecx <= MSR_RESERVED_MAX {
+                // todo inject event
+            } else if ecx == MSR_UNKNOWN || ecx == MSR_UNKNOWN2 {
+                // todo inject event
+            }
+
+            write_msr(ecx, unsafe{ msr_value.QuadPart } as _);
+        }
+    }
+
+    vmx_advance_eip(guest_state);
+
+}
+
+unsafe extern "C" fn vmx_exit_handler(context: &mut Context) -> u64 {
 
     let mut guest_state = GuestState{
         guest_regs: context,
-        vcpu: gd.vmx_data.as_mut().unwrap().get_current_vcpu(),
+        // vcpu: gd.vmx_data.as_mut().unwrap().get_current_vcpu(),
         guest_rip: vmcs_read(GUEST_RIP),
         guest_rsp: vmcs_read(GUEST_RSP),
         guest_rflags: vmcs_read(GUEST_RFLAGS),
@@ -202,10 +294,15 @@ extern "C" fn vmx_exit_handler(context: &mut Context) -> u64 {
     match guest_state.exit_reason {
         EXIT_REASON_CPUID => {
             vm_exit_cpuid(&mut guest_state);
-        },
+        }
         EXIT_REASON_VMCALL => {
-            println!("guest_rsp:{:X}",guest_state.guest_rsp);
             vm_exit_vmcall(&mut guest_state);
+        }
+        EXIT_REASON_MSR_READ => {
+            vm_exit_msr_read(&mut guest_state);
+        }
+        EXIT_REASON_MSR_WRITE => {
+            vm_exit_msr_write(&mut guest_state);
         }
         _ => {
             println!("exit_reason:{}",guest_state.exit_reason);
@@ -229,11 +326,6 @@ extern "C" fn vmx_exit_handler(context: &mut Context) -> u64 {
         println!("vmx_off execute error");
         __debugbreak();
     }
-
-    println!("vmxoff success");
-        
-    let vcpu = unsafe { guest_state.vcpu.as_mut().unwrap() };
-    vcpu.set_vmx_state(VcpuVmxState::VmxStateOff);
 
     return guest_state.guest_rip + ins_len;
 }

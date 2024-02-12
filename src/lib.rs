@@ -13,9 +13,11 @@ pub mod inner;
 // #[cfg(not(test))]
 extern crate wdk_panic;
 
+
 use core::arch::asm;
 
-use device::device::Device;
+use device::{device::Device, ioctl::IoControl, symbolic_link::SymbolicLink};
+use driver::driver::Driver;
 use gd::gd::GD;
 use wdk::println;
 // #[cfg(not(test))]
@@ -27,7 +29,7 @@ static GLOBAL_ALLOCATOR: WDKAllocator = WDKAllocator;
 
 use wdk_sys::{DRIVER_OBJECT, IRP_MJ_MAXIMUM_FUNCTION, NTSTATUS, PCUNICODE_STRING, STATUS_SUCCESS, STATUS_UNSUCCESSFUL};
 
-use crate::{device::{device::dispatch_device, ioctl::IoControl, symbolic_link::SymbolicLink}, driver::driver::Driver, vmx::{check::{check_os_version, check_vmx_cpu_support}, vmx::Vmm}};
+use crate::{device::device::dispatch_device, utils::utils::__debugbreak, vmx::{check::{check_os_version, check_vmx_cpu_support}, vmx::Vmm}};
 
 static mut __GD:Option<GD> = Option::None;
 
@@ -88,23 +90,27 @@ pub unsafe extern "system" fn driver_entry(
         }
     }
 
+    // let gd = __GD.as_mut().unwrap();
+    // gd.vmx_data = Some(Vmm::new());
+    // match &mut gd.vmx_data {
+    //     Some(v) => {
+    //         v.init();
+    //     },
+    //     None => {}
+    // }
+
     // set dispatch function
     for i in 0..IRP_MJ_MAXIMUM_FUNCTION {
         driver_object.MajorFunction[i as usize] = Some(dispatch_device);
     }
     
-    __GD.as_mut().unwrap().vmx_data.as_mut().unwrap().get_current_vcpu().close_vt();
-    __GD.take();
 
     status
 }
 
 pub unsafe extern "C" fn driver_unload(_driver: *mut DRIVER_OBJECT) {
-    println!("DriverUnload");
-    
-    // __GD.as_mut().unwrap().vmx_data.as_mut().unwrap().get_current_vcpu().close_vt();
-
     // clear resources when drvier unload
-    
+    __GD.take();
 
+    println!("DriverUnload Success");
 }

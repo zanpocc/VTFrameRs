@@ -8,6 +8,8 @@ pub mod ins {
 
     use wdk::println;
 
+    use super::data::vmcs_encoding::VM_INSTRUCTION_ERROR;
+
     #[derive(Debug,PartialEq, Eq)]
     pub enum VmxInstructionResult {
         VmxSuccess = 0,
@@ -187,7 +189,6 @@ pub mod ins {
             );
         }
         
-        println!("rax:{:X}",result);
         VmxInstructionResult::from(0)
     }
 
@@ -210,4 +211,17 @@ pub mod ins {
         VmxInstructionResult::from(result)
     }
 
+    pub fn __vmx_read_error() -> u64 {
+        let mut error_code:u64 = 0;
+        match __vmx_vmread(VM_INSTRUCTION_ERROR,&mut error_code) {
+            VmxInstructionResult::VmxSuccess => {
+                println!("Read ins error code success:{}",error_code);
+                return error_code;
+            },
+            _ => {
+                println!("error to read vmlaunch error code");
+                return !0u64;
+            }
+        }
+    }
 }

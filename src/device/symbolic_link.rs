@@ -1,4 +1,4 @@
-use alloc::vec::Vec;
+use alloc::vec::{self, Vec};
 use wdk::println;
 use wdk_sys::{ntddk::{IoCreateSymbolicLink, IoDeleteSymbolicLink}, NT_SUCCESS, UNICODE_STRING};
 
@@ -10,8 +10,34 @@ pub struct SymbolicLink {
 
 impl SymbolicLink {
     pub fn new(name: &str, target: &str) -> Result<Self, & 'static str> {
-        // Convert the name to UTF-16 and then create a UNICODE_STRING.
+        // str to u16[]
         let name = string_to_utf16_slice(name);
+
+        // whatever 
+        match Self::create(&name,target){
+            Ok(_) => {
+                Self::delete(&name);
+            },
+            Err(e) => {
+                return Err(e);
+            },
+        }
+
+        // twice
+        match Self::create(&name,target){
+            Ok(_) => {},
+            Err(e) => {
+                return Err(e);
+            },
+        }
+
+        Ok(Self {
+            name,
+        })
+    }
+
+    pub fn create(name: &Vec<u16>,target: &str) -> Result<(), & 'static str> {
+        // Convert the name to UTF-16 and then create a UNICODE_STRING.
         let mut name_ptr = create_unicode_string(name.as_slice());
 
         // Convert the target to UTF-16 and then create a UNICODE_STRING.
@@ -26,25 +52,23 @@ impl SymbolicLink {
             return Err("CreateSymbolicLink error");
         }
 
-        println!("CreateSymbolicLink success");
+        Ok(())
+    }
 
-        Ok(Self {
-            name,
-        })
+    fn delete(name: &Vec<u16>) {
+        let mut name_ptr = create_unicode_string(name.as_slice());
+
+        unsafe{
+            let status = IoDeleteSymbolicLink(&mut name_ptr);
+            if !NT_SUCCESS(status) {
+                println!("DeleteSymbolicLink error");
+            }
+        }
     }
 }
 
 impl Drop for SymbolicLink {
     fn drop(&mut self) {
-        println!("Start drop symboliclink");
-
-        let mut name_ptr = create_unicode_string(self.name.as_slice());
-
-        let status = unsafe {IoDeleteSymbolicLink(&mut name_ptr as *mut UNICODE_STRING)};
-        if !NT_SUCCESS(status) {
-            println!("DeleteSymboliclink error");
-        }
-
-        println!("Delete symboliclink success");
+        Self::delete(&self.name);
     }
 }
