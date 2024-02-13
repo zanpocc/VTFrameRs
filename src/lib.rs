@@ -9,12 +9,10 @@ pub mod driver;
 pub mod utils;
 pub mod gd;
 pub mod inner;
+pub mod os;
 
 // #[cfg(not(test))]
 extern crate wdk_panic;
-
-
-use core::arch::asm;
 
 use device::{device::Device, ioctl::IoControl, symbolic_link::SymbolicLink};
 use driver::driver::Driver;
@@ -29,7 +27,7 @@ static GLOBAL_ALLOCATOR: WDKAllocator = WDKAllocator;
 
 use wdk_sys::{DRIVER_OBJECT, IRP_MJ_MAXIMUM_FUNCTION, NTSTATUS, PCUNICODE_STRING, STATUS_SUCCESS, STATUS_UNSUCCESSFUL};
 
-use crate::{device::device::dispatch_device, utils::utils::__debugbreak, vmx::{check::{check_os_version, check_vmx_cpu_support}, vmx::Vmm}};
+use crate::{device::device::dispatch_device, vmx::{check::{check_os_version, check_vmx_cpu_support}, vmx::Vmm}};
 
 static mut __GD:Option<GD> = Option::None;
 
@@ -89,15 +87,6 @@ pub unsafe extern "system" fn driver_entry(
             return STATUS_UNSUCCESSFUL;
         }
     }
-
-    // let gd = __GD.as_mut().unwrap();
-    // gd.vmx_data = Some(Vmm::new());
-    // match &mut gd.vmx_data {
-    //     Some(v) => {
-    //         v.init();
-    //     },
-    //     None => {}
-    // }
 
     // set dispatch function
     for i in 0..IRP_MJ_MAXIMUM_FUNCTION {

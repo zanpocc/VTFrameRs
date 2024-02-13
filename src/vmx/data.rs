@@ -287,6 +287,26 @@ pub(crate) mod exit_reason{
 
 }
 
+
+pub(crate) mod mov_cr_qualification {
+    pub const CONTROL_REGISTER_MASK: u32 = 0x0000000F;
+    pub const ACCESS_TYPE_MASK: u32 = 0x00000030;
+    pub const LMSW_OPERAND_TYPE_MASK: u32 = 0x00000040;
+    pub const RESERVED1_MASK: u32 = 0x00000080;
+    pub const REGISTER_MASK: u32 = 0x00000F00;
+    pub const RESERVED2_MASK: u32 = 0x0000F000;
+    pub const LMSW_SOURCE_DATA_MASK: u32 = 0xFFFF0000;
+}
+
+//CR
+pub const TYPE_MOV_TO_CR: u32 = 0;
+pub const TYPE_MOV_FROM_CR: u32 = 1;
+pub const TYPE_CLTS: u32 = 2;
+pub const TYPE_LMSW: u32 = 3;
+//DR
+pub const TYPE_MOV_TO_DR: u32 = 0;
+pub const TYPE_MOV_FROM_DR: u32 = 1;
+
 pub(crate) mod vm_call{
     // close vt
     pub const VM_CALL_CLOSE_VT: u64 = 1;

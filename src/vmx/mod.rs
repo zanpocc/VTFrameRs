@@ -172,7 +172,6 @@ pub mod ins {
     }
 
     pub fn __vmx_vmcall(vmcall_no: u64,arg1: u64,arg2: u64,arg3: u64) -> VmxInstructionResult {
-        let mut result:u64 = 0;
         unsafe {
             asm!(
                 "xor rax,rax",
@@ -184,12 +183,11 @@ pub mod ins {
                 in("rdx") arg1,
                 in("r8") arg2,
                 in("r9") arg3,
-                out("rax") result,
                 options(nostack, nomem)
             );
         }
         
-        VmxInstructionResult::from(0)
+        VmxInstructionResult::VmxFailValid
     }
 
     pub fn __invept(invept_type: u64,ept_ctx: *mut c_void) -> VmxInstructionResult {

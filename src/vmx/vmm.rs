@@ -5,7 +5,7 @@ use wdk_sys::{ntddk::KeGetCurrentIrql, LARGE_INTEGER};
 
 use crate::{cpu::cpu::{ins::{cpuidex, read_msr, write_msr}, stru::{msr::{self, ia32_feature_control_msr::{ENABLE_VMXON, LOCK_MASK}}, msr_index::{MSR_FS_BASE, MSR_GS_BASE, MSR_IA32_DEBUGCTL, MSR_IA32_FEATURE_CONTROL, MSR_IA32_VMX_BASIC, MSR_IA32_VMX_VMFUNC, MSR_RESERVED_MAX, MSR_RESERVED_MIN, MSR_UNKNOWN, MSR_UNKNOWN2, VMWARE_MSR, VMWARE_MSR2, VMWARE_MSR3, VMWARE_MSR4}}}, utils::utils::__debugbreak, vmx::{data::vmcs_encoding::{EXIT_QUALIFICATION, GUEST_LINEAR_ADDRESS, GUEST_PHYSICAL_ADDRESS, GUEST_RFLAGS, GUEST_RIP, GUEST_RSP, VM_EXIT_REASON}, ins::vmcs_read}, __GD};
 
-use super::{data::{exit_reason::{EXIT_REASON_CPUID, EXIT_REASON_MSR_READ, EXIT_REASON_MSR_WRITE, EXIT_REASON_VMCALL}, vm_call::VM_CALL_CLOSE_VT, vmcs_encoding::{self, GUEST_FS_BASE, GUEST_GS_BASE, GUEST_IA32_DEBUGCTL, VM_EXIT_INSTRUCTION_LEN}}, ins::{VmxInstructionResult, __vmx_off, __vmx_vmwrite}};
+use super::{data::{exit_reason::{EXIT_REASON_CPUID, EXIT_REASON_CR_ACCESS, EXIT_REASON_MSR_READ, EXIT_REASON_MSR_WRITE, EXIT_REASON_VMCALL}, mov_cr_qualification, vm_call::VM_CALL_CLOSE_VT, vmcs_encoding::{self, CR0_READ_SHADOW, CR4_READ_SHADOW, GUEST_CR0, GUEST_CR3, GUEST_CR4, GUEST_FS_BASE, GUEST_GS_BASE, GUEST_IA32_DEBUGCTL, VM_EXIT_INSTRUCTION_LEN}, TYPE_MOV_FROM_CR, TYPE_MOV_TO_CR}, ins::{VmxInstructionResult, __vmx_off, __vmx_vmwrite}};
 
 global_asm!(r#"
 .section .text
@@ -182,10 +182,11 @@ fn vm_exit_vmcall(guest_state: &mut GuestState) {
 }
 
 fn vm_exit_msr_read(guest_state: &mut GuestState) {
-    
+
     let mut msr_value = LARGE_INTEGER::default();
 
     let ecx: u32 = unsafe { guest_state.guest_regs.as_mut().unwrap().rcx } as u32;
+    println!("msr read:{}",ecx);
 
     match ecx {
         MSR_GS_BASE => {
@@ -235,6 +236,8 @@ fn vm_exit_msr_write(guest_state: &mut GuestState) {
     let mut msr_value = LARGE_INTEGER::default();
     let ecx: u32 = unsafe { guest_state.guest_regs.as_mut().unwrap().rcx } as u32;
 
+    println!("msr write:{}",ecx);
+
     unsafe{
         msr_value.u.LowPart = guest_state.guest_regs.as_ref().unwrap().rax as _;
         msr_value.u.HighPart = guest_state.guest_regs.as_ref().unwrap().rdx as _;
@@ -275,6 +278,84 @@ fn vm_exit_msr_write(guest_state: &mut GuestState) {
 
 }
 
+
+fn get_cr_select_register(index: u32,guest_state: &mut GuestState) -> &mut u64 {
+    return match index {
+        0 => unsafe { &mut guest_state.guest_regs.as_mut().unwrap().rax }
+        1 => unsafe { &mut guest_state.guest_regs.as_mut().unwrap().rcx }
+        2 => unsafe { &mut guest_state.guest_regs.as_mut().unwrap().rdx }
+        3 => unsafe { &mut guest_state.guest_regs.as_mut().unwrap().rbx }
+        4 => unsafe { &mut guest_state.guest_regs.as_mut().unwrap().rsp }
+        5 => unsafe { &mut guest_state.guest_regs.as_mut().unwrap().rbp }
+        6 => unsafe { &mut guest_state.guest_regs.as_mut().unwrap().rsi }
+        7 => unsafe { &mut guest_state.guest_regs.as_mut().unwrap().rdi }
+        8 => unsafe { &mut guest_state.guest_regs.as_mut().unwrap().r8 }
+        9 => unsafe { &mut guest_state.guest_regs.as_mut().unwrap().r9 }
+        10 => unsafe { &mut guest_state.guest_regs.as_mut().unwrap().r10 }
+        11 => unsafe { &mut guest_state.guest_regs.as_mut().unwrap().r11 }
+        12 => unsafe { &mut guest_state.guest_regs.as_mut().unwrap().r12 }
+        13 => unsafe { &mut guest_state.guest_regs.as_mut().unwrap().r13 }
+        14 => unsafe { &mut guest_state.guest_regs.as_mut().unwrap().r14 }
+        15 => unsafe { &mut guest_state.guest_regs.as_mut().unwrap().r15 }
+        _ => {
+            println!("unknown cr index");
+            panic!();
+        }
+    }
+}
+
+fn vm_exit_cr_access(guest_state: &mut GuestState) {
+    let data: u64 = guest_state.exit_qualification; // MOV_CR_QUALIFICATION
+    let reg: &mut u64 = get_cr_select_register((data & mov_cr_qualification::REGISTER_MASK as u64) as u32,guest_state);
+    let access_type = (data & mov_cr_qualification::ACCESS_TYPE_MASK as u64) as u32;
+
+    println!("cr access reg={},at={}",reg,access_type);
+
+    match access_type {
+        TYPE_MOV_TO_CR => {
+            let control_register = data & mov_cr_qualification::CONTROL_REGISTER_MASK as u64;
+            match control_register {
+                0 => {
+                    __vmx_vmwrite(GUEST_CR0, *reg);
+                    __vmx_vmwrite(CR0_READ_SHADOW, *reg);
+                }
+                3 => {
+                    __vmx_vmwrite(GUEST_CR3, *reg & !(1u64 << 63));
+                }
+                4 => {
+                    __vmx_vmwrite(GUEST_CR4, *reg);
+                    __vmx_vmwrite(CR4_READ_SHADOW, *reg);
+                }
+                _ => {
+                    println!("unknown cr write");
+                }
+            }
+            
+        }
+        TYPE_MOV_FROM_CR => {
+            let control_register = data & mov_cr_qualification::CONTROL_REGISTER_MASK as u64;
+            match control_register {
+                0 => {
+                    *reg = vmcs_read(GUEST_CR0);
+                }
+                3 => {
+                    *reg = vmcs_read(GUEST_CR3);
+                }
+                4 => {
+                    *reg = vmcs_read(GUEST_CR4);
+                }
+                _ => {
+                    println!("unknown cr read");
+                }
+            }
+        }
+        _ => {
+            println!("error cr access type");
+        }
+    }
+
+}
+
 unsafe extern "C" fn vmx_exit_handler(context: &mut Context) -> u64 {
 
     let mut guest_state = GuestState{
@@ -303,6 +384,9 @@ unsafe extern "C" fn vmx_exit_handler(context: &mut Context) -> u64 {
         }
         EXIT_REASON_MSR_WRITE => {
             vm_exit_msr_write(&mut guest_state);
+        }
+        EXIT_REASON_CR_ACCESS => {
+            vm_exit_cr_access(&mut guest_state);
         }
         _ => {
             println!("exit_reason:{}",guest_state.exit_reason);
