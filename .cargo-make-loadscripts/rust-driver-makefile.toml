@@ -4,25 +4,22 @@
 # FIXME: this flow is based on the signing process of a KMDF PNP driver. There should be different flows availabe for different types of drivers as outlined in https://learn.microsoft.com/en-us/windows-hardware/drivers/install/test-signing-driver-packages 
 
 [env]
-VC_BUILD_DIR = "C:\\Program Files\\Microsoft Visual Studio\\2022\\Preview222\\VC\\Auxiliary\\Build\\vcvarsamd64_x86.bat"
+VC_BUILD_DIR = "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\Auxiliary\\Build\\vcvarsamd64_x86.bat"
 # FIXME: add --locked for CI builds using CARGO_MAKE_PR and CARGO_MAKE_CI
 CARGO_MAKE_CARGO_BUILD_TEST_FLAGS = "--profile ${CARGO_MAKE_CARGO_PROFILE}"
 
 # Cargo puts "dev" profile builds in the "debug" target folder: https://doc.rust-lang.org/cargo/guide/build-cache.html#build-cache. This supports cargo-make profile values of both "development" and "dev"
 OUTPUT_DIR = { source = "${CARGO_MAKE_CARGO_PROFILE}", default_value = "${CARGO_MAKE_CRATE_TARGET_DIRECTORY}\\${CARGO_MAKE_CARGO_PROFILE}", mapping = { "dev" = "${CARGO_MAKE_CRATE_TARGET_DIRECTORY}\\debug" } }
 
-
-# if exist package\%CARGO_MAKE_CRATE_FS_NAME%.sys (
-#   del package\%CARGO_MAKE_CRATE_FS_NAME%.sys
-# )
 [tasks.rename-dll-to-sys]
 dependencies = ["build"]
 script = '''
 echo "%OUTPUT_DIR%"
 cd "%OUTPUT_DIR%"
 mkdir package
-
-del %CARGO_MAKE_CRATE_FS_NAME%.sys
+if exist package\%CARGO_MAKE_CRATE_FS_NAME%.sys (
+  del package\%CARGO_MAKE_CRATE_FS_NAME%.sys
+)
 rename %CARGO_MAKE_CRATE_FS_NAME%.dll %CARGO_MAKE_CRATE_FS_NAME%.sys
 copy %CARGO_MAKE_CRATE_FS_NAME%.sys package\%CARGO_MAKE_CRATE_FS_NAME%.sys
 '''
@@ -64,21 +61,6 @@ if not exist DriverCertificate.cer (
 )
 signtool sign /a /v /s PrivateCertStore /n DriverCertificate /fd certHash /t http://timestamp.digicert.com "%OUTPUT_DIR%\package\%CARGO_MAKE_CRATE_FS_NAME%.cat"
 '''
-
-[tasks.release]
-dependencies = ["rename-dll-to-sys"]
-script = '''
-call "%VC_BUILD_DIR%"
-if not exist DriverCertificate.cer (
-  makecert -r -pe -ss PrivateCertStore -n CN=DriverCertificate DriverCertificate.cer
-) else (
-  echo Certificate already exists.
-)
-signtool sign /a /v /s PrivateCertStore /n DriverCertificate /fd certHash /t http://timestamp.digicert.com "%OUTPUT_DIR%\package\%CARGO_MAKE_CRATE_FS_NAME%.cat"
-'''
-
-
-
 
 [tasks.default]
 alias = "sign"
