@@ -1,22 +1,19 @@
 #![no_std]
 
-extern crate alloc;
-
 pub mod vmx;
-pub mod cpu;
 pub mod device;
 pub mod driver;
 pub mod utils;
 pub mod gd;
 pub mod inner;
-pub mod os;
 
+extern crate alloc;
 // #[cfg(not(test))]
 extern crate wdk_panic;
 
 use device::{device::Device, ioctl::IoControl, symbolic_link::SymbolicLink};
 use driver::driver::Driver;
-use gd::gd::GD;
+use moon_struct::check_os_version;
 use wdk::println;
 // #[cfg(not(test))]
 use wdk_alloc::WDKAllocator;
@@ -27,7 +24,7 @@ static GLOBAL_ALLOCATOR: WDKAllocator = WDKAllocator;
 
 use wdk_sys::{DRIVER_OBJECT, IRP_MJ_MAXIMUM_FUNCTION, NTSTATUS, PCUNICODE_STRING, STATUS_SUCCESS, STATUS_UNSUCCESSFUL};
 
-use crate::{device::device::dispatch_device, vmx::{check::{check_os_version, check_vmx_cpu_support}, vmx::Vmm}};
+use crate::{device::device::dispatch_device, gd::gd::GD, vmx::{check::check_vmx_cpu_support, vmx::Vmm}};
 
 static mut __GD:Option<GD> = Option::None;
 
@@ -92,7 +89,6 @@ pub unsafe extern "system" fn driver_entry(
     for i in 0..IRP_MJ_MAXIMUM_FUNCTION {
         driver_object.MajorFunction[i as usize] = Some(dispatch_device);
     }
-    
 
     status
 }

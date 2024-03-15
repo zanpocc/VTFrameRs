@@ -1,8 +1,8 @@
-use alloc::vec::{self, Vec};
+use alloc::vec::Vec;
 use wdk::println;
-use wdk_sys::{ntddk::{IoCreateSymbolicLink, IoDeleteSymbolicLink}, NT_SUCCESS, UNICODE_STRING};
+use wdk_sys::{ntddk::{IoCreateSymbolicLink, IoDeleteSymbolicLink}, NT_SUCCESS};
 
-use crate::utils::utils::{__debugbreak, create_unicode_string, string_to_utf16_slice};
+use crate::utils::utils::{create_unicode_string, string_to_utf16_slice};
 
 pub struct SymbolicLink {
     name: Vec<u16>,
@@ -14,16 +14,6 @@ impl SymbolicLink {
         let name = string_to_utf16_slice(name);
 
         // whatever 
-        match Self::create(&name,target){
-            Ok(_) => {
-                Self::delete(&name);
-            },
-            Err(e) => {
-                return Err(e);
-            },
-        }
-
-        // twice
         match Self::create(&name,target){
             Ok(_) => {},
             Err(e) => {
@@ -49,6 +39,7 @@ impl SymbolicLink {
         };
 
         if !NT_SUCCESS(status) {
+            println!("CreateSymbolicLink error:{:X}",status);
             return Err("CreateSymbolicLink error");
         }
 
@@ -61,7 +52,7 @@ impl SymbolicLink {
         unsafe{
             let status = IoDeleteSymbolicLink(&mut name_ptr);
             if !NT_SUCCESS(status) {
-                println!("DeleteSymbolicLink error");
+                println!("DeleteSymbolicLink error:{:X}",status);
             }
         }
     }
@@ -69,6 +60,7 @@ impl SymbolicLink {
 
 impl Drop for SymbolicLink {
     fn drop(&mut self) {
+        println!("Start Drop symboliclink");
         Self::delete(&self.name);
     }
 }

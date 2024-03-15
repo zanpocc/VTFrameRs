@@ -288,6 +288,7 @@ pub(crate) mod exit_reason{
 }
 
 
+#[allow(unused)]
 pub(crate) mod mov_cr_qualification {
     pub const CONTROL_REGISTER_MASK: u32 = 0x0000000F;
     pub const ACCESS_TYPE_MASK: u32 = 0x00000030;

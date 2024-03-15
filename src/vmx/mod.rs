@@ -176,9 +176,6 @@ pub mod ins {
             asm!(
                 "xor rax,rax",
                 "vmcall",
-                "setc al",
-	            "setz cl",
-	            "adc al,cl",
                 in("rcx") vmcall_no,
                 in("rdx") arg1,
                 in("r8") arg2,
@@ -187,7 +184,7 @@ pub mod ins {
             );
         }
         
-        VmxInstructionResult::VmxFailValid
+        VmxInstructionResult::VmxSuccess
     }
 
     pub fn __invept(invept_type: u64,ept_ctx: *mut c_void) -> VmxInstructionResult {

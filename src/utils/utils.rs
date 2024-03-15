@@ -1,4 +1,4 @@
-use core::{arch::asm, ffi::c_void};
+use core::ffi::c_void;
 
 use alloc::vec::Vec;
 use wdk_sys::{ntddk::{IoAllocateMdl, IoFreeMdl, KeGetCurrentProcessorNumberEx, MmBuildMdlForNonPagedPool, MmProtectMdlSystemAddress}, MDL_MAPPED_TO_SYSTEM_VA, NT_SUCCESS, UNICODE_STRING};
@@ -25,9 +25,6 @@ pub fn create_unicode_string(s: &[u16]) -> UNICODE_STRING {
 
 // eg. end_bit=5 result=0b11111
 pub fn create_end_mask(end_bit: u64) -> u64 {
-    // check range
-    assert!(0 <= end_bit && end_bit < 64, "Invalid bit range");
-
     // calculate mask
     (!0u64) >> (64 - end_bit)
 }
@@ -74,10 +71,3 @@ pub fn protect_non_paged_memory(ptr: *mut c_void,size: u64,protection: u32) -> R
     Ok(())
 }
 
-pub fn __debugbreak() {
-    unsafe{ 
-        asm!{
-            "int 3"
-        };
-    }
-}

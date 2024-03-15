@@ -2,41 +2,9 @@ extern crate alloc;
 
 use core::arch::x86_64::__cpuid;
 
+use moon_instructions::{read_msr, write_msr};
+use moon_struct::msr::{self, ia32_feature_control_msr, ia32_mtrr_def_type_msr};
 use wdk::println;
-use wdk_sys::{ntddk::RtlGetVersion, NT_SUCCESS, RTL_OSVERSIONINFOW};
-
-use crate::cpu::cpu::{ins::{read_msr, write_msr}, stru::{msr::{ia32_feature_control_msr, ia32_mtrr_def_type_msr}, msr_index::{MSR_IA32_FEATURE_CONTROL, MSR_IA32_MTRR_DEF_TYPE}}};
-
-pub fn check_os_version() -> Result<(), &'static str> {
-    // check system version
-    let mut os_version = RTL_OSVERSIONINFOW {
-        dwOSVersionInfoSize: 0,
-        dwMajorVersion: 0,
-        dwMinorVersion: 0,
-        dwBuildNumber: 0,
-        dwPlatformId: 0,
-        szCSDVersion: [0; 128],
-    };
-
-    // transform to origin point
-    let os_version_ptr: *mut RTL_OSVERSIONINFOW = &mut os_version;
-
-    let status = unsafe { RtlGetVersion(os_version_ptr) };
-
-    if !NT_SUCCESS(status) {
-        return Err("Query Sstem Version Error");
-    }
-
-    println!(
-        "Check_os_version success:{},{},{},{}",
-        os_version.dwBuildNumber,
-        os_version.dwMajorVersion,
-        os_version.dwMinorVersion,
-        os_version.dwPlatformId
-    );
-
-    return Ok(());
-}
 
 pub fn check_vmx_cpu_support() -> Result<(), &'static str> {
     // check cpu type
@@ -61,12 +29,12 @@ pub fn check_vmx_cpu_support() -> Result<(), &'static str> {
     }
 
     // check bios switch
-    let mut feature_control_msr = read_msr(MSR_IA32_FEATURE_CONTROL);
+    let mut feature_control_msr = read_msr(msr::msr_index::MSR_IA32_FEATURE_CONTROL);
 
     if (feature_control_msr & ia32_feature_control_msr::LOCK_MASK) == 0 {
         feature_control_msr |= ia32_feature_control_msr::LOCK_MASK;
         feature_control_msr |= ia32_feature_control_msr::ENABLE_VMXON;
-        write_msr(MSR_IA32_FEATURE_CONTROL, feature_control_msr);
+        write_msr(msr::msr_index::MSR_IA32_FEATURE_CONTROL, feature_control_msr);
         println!("Start set feature control MSR");
     } else if (feature_control_msr & ia32_feature_control_msr::ENABLE_VMXON) == 0 {
         return Err("BIOS dont enable virtualazation");
@@ -82,7 +50,7 @@ pub fn check_vmx_cpu_support() -> Result<(), &'static str> {
     // }
 
     // check mttr
-    let mtrr_def_type_msr = read_msr(MSR_IA32_MTRR_DEF_TYPE);
+    let mtrr_def_type_msr = read_msr(msr::msr_index::MSR_IA32_MTRR_DEF_TYPE);
 
     if (mtrr_def_type_msr & ia32_mtrr_def_type_msr::MTRR_ENABLE_MASK) == 0 {
         return Err("Mtrr dynamic ranges not supported");

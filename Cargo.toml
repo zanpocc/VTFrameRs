@@ -1,19 +1,25 @@
+workspace = { members = [ "dependencies/moon-instructions","dependencies/moon-struct"] }
 [package]
 name = "rust_driver"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-wdk = "0.1.0"
-wdk-alloc = "0.1.0"
-wdk-panic = "0.1.0"
-wdk-sys = "0.1.0"
+wdk = "0.2.0"
+wdk-alloc = "0.2.0"
+wdk-panic = "0.2.0"
+wdk-sys = "0.2.0"
+lazy_static = "1.4.0"
+
 cty = "0.2.2"
+# moon-hook = "0.1.0"
+# moon-log = "0.1.0"
+moon-struct = { path = "./dependencies/moon-struct",version = "*" }
+moon-instructions = { path = "./dependencies/moon-instructions",version = "*" }
 
 [build-dependencies]
-wdk-build = "0.1.0"
+wdk-build = "0.2.0"
 
 [lib]
 crate-type = ["cdylib"]

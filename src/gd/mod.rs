@@ -1,12 +1,12 @@
 pub mod gd {
     use wdk::println;
 
-    use crate::{device::{device::Device, symbolic_link::SymbolicLink}, vmx::{ins::__vmx_vmcall, vmx::Vmm}};
+    use crate::{device::{device::Device, symbolic_link::SymbolicLink}, vmx::vmx::Vmm};
 
     pub struct GD {
-        pub vmx_data: Option<Vmm>,
-        pub device: Option<Device>,
         pub symbolic_link: Option<SymbolicLink>,
+        pub device: Option<Device>,
+        pub vmx_data: Option<Vmm>,
     }
 
     impl Drop for GD {
