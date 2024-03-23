@@ -1,13 +1,14 @@
 use core::{ffi::c_void, mem::size_of, ptr::null_mut};
 
 use alloc::vec::Vec;
+use moon_driver_utils::bitfield::{create_end_mask, get_bits_value, set_bits_value};
 use moon_feature::in_vmware;
 use moon_instructions::{read_msr, segment_limit, write_cr0, write_cr4};
 use moon_struct::{inner::{GdtEntry64, GDTENTRY64_ACCESS_RIGHTS, KGDTENTRY64, KPROCESSOR_STATE}, msr::{self, ia32_vmx_ept_vpid_cap_msr, msr_index::{MSR_IA32_VMX_BASIC, MSR_IA32_VMX_EPT_VPID_CAP, MSR_IA32_VMX_PROCBASED_CTLS, MSR_IA32_VMX_PROCBASED_CTLS2, MSR_IA32_VMX_TRUE_PROCBASED_CTLS}}};
 use wdk::println;
 use wdk_sys::{ntddk::{KeQueryActiveProcessorCount, KeRevertToUserAffinityThread, KeSetSystemAffinityThread, MmAllocateContiguousMemory, MmFreeContiguousMemory, MmGetPhysicalAddress, RtlCaptureContext, RtlInitializeBitMap, RtlSetBit}, CONTEXT, KERNEL_STACK_SIZE, PAGE_READWRITE, PHYSICAL_ADDRESS, RTL_BITMAP, USHORT, _LARGE_INTEGER};
 
-use crate::{inner::{KeSaveStateForHibernate, RtlRestoreContext}, utils::utils::{create_end_mask, get_bits_value, get_current_processor_idx, protect_non_paged_memory, set_bits_value}, vmx::{data::vmcs_encoding::{CR0_GUEST_HOST_MASK, HOST_FS_BASE, HOST_GS_BASE, HOST_TR_BASE}, ins::{__vmx_on, __vmx_read_error, __vmx_vmclear, __vmx_vmlaunch, __vmx_vmptrld}}, __GD};
+use crate::{inner::{KeSaveStateForHibernate, RtlRestoreContext}, utils::utils::{ get_current_processor_idx, protect_non_paged_memory}, vmx::{data::vmcs_encoding::{CR0_GUEST_HOST_MASK, HOST_FS_BASE, HOST_GS_BASE, HOST_TR_BASE}, ins::{__vmx_on, __vmx_read_error, __vmx_vmclear, __vmx_vmlaunch, __vmx_vmptrld}}, __GD};
 
 use super::{data::{vm_call::VM_CALL_CLOSE_VT, vmcs_encoding::{CPU_BASED_VM_EXEC_CONTROL, CR0_READ_SHADOW, CR4_GUEST_HOST_MASK, CR4_READ_SHADOW, EPT_POINTER, GUEST_CR0, GUEST_CR3, GUEST_CR4, GUEST_CS_AR_BYTES, GUEST_CS_BASE, GUEST_CS_LIMIT, GUEST_CS_SELECTOR, GUEST_DR7, GUEST_DS_AR_BYTES, GUEST_DS_BASE, GUEST_DS_LIMIT, GUEST_DS_SELECTOR, GUEST_ES_AR_BYTES, GUEST_ES_BASE, GUEST_ES_LIMIT, GUEST_ES_SELECTOR, GUEST_FS_AR_BYTES, GUEST_FS_BASE, GUEST_FS_LIMIT, GUEST_FS_SELECTOR, GUEST_GDTR_BASE, GUEST_GDTR_LIMIT, GUEST_GS_AR_BYTES, GUEST_GS_BASE, GUEST_GS_LIMIT, GUEST_GS_SELECTOR, GUEST_IA32_DEBUGCTL, GUEST_IDTR_BASE, GUEST_IDTR_LIMIT, GUEST_LDTR_AR_BYTES, GUEST_LDTR_BASE, GUEST_LDTR_LIMIT, GUEST_LDTR_SELECTOR, GUEST_RFLAGS, GUEST_RIP, GUEST_RSP, GUEST_SS_AR_BYTES, GUEST_SS_BASE, GUEST_SS_LIMIT, GUEST_SS_SELECTOR, GUEST_TR_AR_BYTES, GUEST_TR_BASE, GUEST_TR_LIMIT, GUEST_TR_SELECTOR, HOST_CR0, HOST_CR3, HOST_CR4, HOST_CS_SELECTOR, HOST_DS_SELECTOR, HOST_ES_SELECTOR, HOST_FS_SELECTOR, HOST_GDTR_BASE, HOST_GS_SELECTOR, HOST_IDTR_BASE, HOST_RIP, HOST_RSP, HOST_SS_SELECTOR, HOST_TR_SELECTOR, MSR_BITMAP, PIN_BASED_VM_EXEC_CONTROL, SECONDARY_VM_EXEC_CONTROL, VIRTUAL_PROCESSOR_ID, VMCS_LINK_POINTER, VM_ENTRY_CONTROLS, VM_EXIT_CONTROLS}, vmx_basic::VMX_BASIC_TRUE_CTLS, vmx_cpu_based_controls::{self, VMX_PROC_CTLS_USE_SECONDARY_CTLS}, vmx_secondary_cpu_based_controls::{self, VMX_PROC_CTLS2_EPT, VMX_PROC_CTLS2_VMFUNC, VMX_PROC_CTLS2_VPID}, vmx_vm_enter_controls, vmx_vm_exit_controls}, ept::ept::EptState, ins::{VmxInstructionResult, __vmx_off, __vmx_vmcall, __vmx_vmwrite}};
 
@@ -649,7 +650,7 @@ impl Vmm {
         if in_vmware() {
             self.vmx_features.in_vmware = true;
         }
-        
+
     }
 
     pub fn start(&mut self) -> Result<(),()>{

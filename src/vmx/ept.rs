@@ -1,12 +1,13 @@
 pub mod ept {
     use core::{ffi::c_void, mem::size_of};
 
+    use moon_driver_utils::bitfield::{get_bits_value, set_bits_value};
     use moon_instructions::{bit_scan_forward64, read_msr, stosq};
     use moon_struct::msr::{ia32_mtrr_capabilities_msr, ia32_mtrr_phys_base_msr, ia32_mtrr_phys_mask_msr, msr_index::{MSR_IA32_MTRR_CAPABILITIES, MSR_IA32_MTRR_PHYSBASE0, MSR_IA32_MTRR_PHYSMASK0}};
     use wdk::println;
     use wdk_sys::{ntddk::{memset, MmAllocateContiguousMemory, MmFreeContiguousMemory}, LIST_ENTRY, PAGE_SIZE, PHYSICAL_ADDRESS};
 
-    use crate::{inner::initialize_list_head, utils::utils::{get_bits_value, set_bits_value, virtual_address_to_physical_address}, vmx::data::{pml3e, pml2e_2mb, ept_memory_type::{MEMORY_TYPE_UNCACHEABLE, MEMORY_TYPE_WRITE_BACK}, ept_pointer, pml4e}};
+    use crate::{inner::initialize_list_head, utils::utils::virtual_address_to_physical_address, vmx::data::{pml3e, pml2e_2mb, ept_memory_type::{MEMORY_TYPE_UNCACHEABLE, MEMORY_TYPE_WRITE_BACK}, ept_pointer, pml4e}};
 
     
     // sizeof=512*8 + 512*8 + 512*8*512 + 0x1000 = 2109440
