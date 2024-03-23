@@ -1,14 +1,15 @@
 use core::{ffi::c_void, mem::size_of, ptr::null_mut};
 
 use alloc::vec::Vec;
+use moon_feature::in_vmware;
 use moon_instructions::{read_msr, segment_limit, write_cr0, write_cr4};
-use moon_struct::{inner::{GdtEntry64, GDTENTRY64_ACCESS_RIGHTS, KGDTENTRY64, KPROCESSOR_STATE}, msr};
+use moon_struct::{inner::{GdtEntry64, GDTENTRY64_ACCESS_RIGHTS, KGDTENTRY64, KPROCESSOR_STATE}, msr::{self, ia32_vmx_ept_vpid_cap_msr, msr_index::{MSR_IA32_VMX_BASIC, MSR_IA32_VMX_EPT_VPID_CAP, MSR_IA32_VMX_PROCBASED_CTLS, MSR_IA32_VMX_PROCBASED_CTLS2, MSR_IA32_VMX_TRUE_PROCBASED_CTLS}}};
 use wdk::println;
 use wdk_sys::{ntddk::{KeQueryActiveProcessorCount, KeRevertToUserAffinityThread, KeSetSystemAffinityThread, MmAllocateContiguousMemory, MmFreeContiguousMemory, MmGetPhysicalAddress, RtlCaptureContext, RtlInitializeBitMap, RtlSetBit}, CONTEXT, KERNEL_STACK_SIZE, PAGE_READWRITE, PHYSICAL_ADDRESS, RTL_BITMAP, USHORT, _LARGE_INTEGER};
 
-use crate::{inner::{KeSaveStateForHibernate, RtlRestoreContext}, utils::utils::{create_end_mask, get_bits_value, get_current_processor_idx, protect_non_paged_memory, set_bits_value}, vmx::{data::vmcs_encoding::{CR0_GUEST_HOST_MASK, HOST_FS_BASE, HOST_GS_BASE, HOST_TR_BASE}, ins::{__vmx_on, __vmx_read_error, __vmx_vmclear, __vmx_vmlaunch, __vmx_vmptrld}}};
+use crate::{inner::{KeSaveStateForHibernate, RtlRestoreContext}, utils::utils::{create_end_mask, get_bits_value, get_current_processor_idx, protect_non_paged_memory, set_bits_value}, vmx::{data::vmcs_encoding::{CR0_GUEST_HOST_MASK, HOST_FS_BASE, HOST_GS_BASE, HOST_TR_BASE}, ins::{__vmx_on, __vmx_read_error, __vmx_vmclear, __vmx_vmlaunch, __vmx_vmptrld}}, __GD};
 
-use super::{data::{vm_call::VM_CALL_CLOSE_VT, vmcs_encoding::{CPU_BASED_VM_EXEC_CONTROL, CR0_READ_SHADOW, CR4_GUEST_HOST_MASK, CR4_READ_SHADOW, GUEST_CR0, GUEST_CR3, GUEST_CR4, GUEST_CS_AR_BYTES, GUEST_CS_BASE, GUEST_CS_LIMIT, GUEST_CS_SELECTOR, GUEST_DR7, GUEST_DS_AR_BYTES, GUEST_DS_BASE, GUEST_DS_LIMIT, GUEST_DS_SELECTOR, GUEST_ES_AR_BYTES, GUEST_ES_BASE, GUEST_ES_LIMIT, GUEST_ES_SELECTOR, GUEST_FS_AR_BYTES, GUEST_FS_BASE, GUEST_FS_LIMIT, GUEST_FS_SELECTOR, GUEST_GDTR_BASE, GUEST_GDTR_LIMIT, GUEST_GS_AR_BYTES, GUEST_GS_BASE, GUEST_GS_LIMIT, GUEST_GS_SELECTOR, GUEST_IA32_DEBUGCTL, GUEST_IDTR_BASE, GUEST_IDTR_LIMIT, GUEST_LDTR_AR_BYTES, GUEST_LDTR_BASE, GUEST_LDTR_LIMIT, GUEST_LDTR_SELECTOR, GUEST_RFLAGS, GUEST_RIP, GUEST_RSP, GUEST_SS_AR_BYTES, GUEST_SS_BASE, GUEST_SS_LIMIT, GUEST_SS_SELECTOR, GUEST_TR_AR_BYTES, GUEST_TR_BASE, GUEST_TR_LIMIT, GUEST_TR_SELECTOR, HOST_CR0, HOST_CR3, HOST_CR4, HOST_CS_SELECTOR, HOST_DS_SELECTOR, HOST_ES_SELECTOR, HOST_FS_SELECTOR, HOST_GDTR_BASE, HOST_GS_SELECTOR, HOST_IDTR_BASE, HOST_RIP, HOST_RSP, HOST_SS_SELECTOR, HOST_TR_SELECTOR, PIN_BASED_VM_EXEC_CONTROL, SECONDARY_VM_EXEC_CONTROL, VMCS_LINK_POINTER, VM_ENTRY_CONTROLS, VM_EXIT_CONTROLS}, vmx_cpu_based_controls, vmx_secondary_cpu_based_controls, vmx_vm_enter_controls, vmx_vm_exit_controls}, ins::{VmxInstructionResult, __vmx_off, __vmx_vmcall, __vmx_vmwrite}};
+use super::{data::{vm_call::VM_CALL_CLOSE_VT, vmcs_encoding::{CPU_BASED_VM_EXEC_CONTROL, CR0_READ_SHADOW, CR4_GUEST_HOST_MASK, CR4_READ_SHADOW, EPT_POINTER, GUEST_CR0, GUEST_CR3, GUEST_CR4, GUEST_CS_AR_BYTES, GUEST_CS_BASE, GUEST_CS_LIMIT, GUEST_CS_SELECTOR, GUEST_DR7, GUEST_DS_AR_BYTES, GUEST_DS_BASE, GUEST_DS_LIMIT, GUEST_DS_SELECTOR, GUEST_ES_AR_BYTES, GUEST_ES_BASE, GUEST_ES_LIMIT, GUEST_ES_SELECTOR, GUEST_FS_AR_BYTES, GUEST_FS_BASE, GUEST_FS_LIMIT, GUEST_FS_SELECTOR, GUEST_GDTR_BASE, GUEST_GDTR_LIMIT, GUEST_GS_AR_BYTES, GUEST_GS_BASE, GUEST_GS_LIMIT, GUEST_GS_SELECTOR, GUEST_IA32_DEBUGCTL, GUEST_IDTR_BASE, GUEST_IDTR_LIMIT, GUEST_LDTR_AR_BYTES, GUEST_LDTR_BASE, GUEST_LDTR_LIMIT, GUEST_LDTR_SELECTOR, GUEST_RFLAGS, GUEST_RIP, GUEST_RSP, GUEST_SS_AR_BYTES, GUEST_SS_BASE, GUEST_SS_LIMIT, GUEST_SS_SELECTOR, GUEST_TR_AR_BYTES, GUEST_TR_BASE, GUEST_TR_LIMIT, GUEST_TR_SELECTOR, HOST_CR0, HOST_CR3, HOST_CR4, HOST_CS_SELECTOR, HOST_DS_SELECTOR, HOST_ES_SELECTOR, HOST_FS_SELECTOR, HOST_GDTR_BASE, HOST_GS_SELECTOR, HOST_IDTR_BASE, HOST_RIP, HOST_RSP, HOST_SS_SELECTOR, HOST_TR_SELECTOR, MSR_BITMAP, PIN_BASED_VM_EXEC_CONTROL, SECONDARY_VM_EXEC_CONTROL, VIRTUAL_PROCESSOR_ID, VMCS_LINK_POINTER, VM_ENTRY_CONTROLS, VM_EXIT_CONTROLS}, vmx_basic::VMX_BASIC_TRUE_CTLS, vmx_cpu_based_controls::{self, VMX_PROC_CTLS_USE_SECONDARY_CTLS}, vmx_secondary_cpu_based_controls::{self, VMX_PROC_CTLS2_EPT, VMX_PROC_CTLS2_VMFUNC, VMX_PROC_CTLS2_VPID}, vmx_vm_enter_controls, vmx_vm_exit_controls}, ept::ept::EptState, ins::{VmxInstructionResult, __vmx_off, __vmx_vmcall, __vmx_vmwrite}};
 
 extern "C"{
     pub fn vmm_entry_point();
@@ -29,14 +30,12 @@ pub struct Vcpu {
     vmxon: bool,
 }
 
-// todo
-#[allow(unused)]
 pub struct Vmm {
     cpu_count: u32,
     vmx_features: VMXFeatures,
+    ept_state: Option<EptState>,
     vcpu: Vec<Vcpu>,
 }
-
 
 impl Vcpu {
     // free vmm relate physical memory self
@@ -186,40 +185,10 @@ impl Vcpu {
         }
     }   
 
-    // todo
-    fn set_vmcs_data(&mut self) {
-        let vmx_pin: u64 = read_msr(msr::msr_index::MSR_IA32_VMX_TRUE_PINBASED_CTLS);
-        let vmx_cpu: u64 = read_msr(msr::msr_index::MSR_IA32_VMX_TRUE_PROCBASED_CTLS);
-        //cpu secondary
-        let vmx_sec: u64 = read_msr(msr::msr_index::MSR_IA32_VMX_PROCBASED_CTLS2);
-        //VM Exit
-        let vmx_exit: u64 = read_msr(msr::msr_index::MSR_IA32_VMX_TRUE_EXIT_CTLS);
-        //VM Entry
-        let vmx_entry: u64 = read_msr(msr::msr_index::MSR_IA32_VMX_TRUE_ENTRY_CTLS);
 
-        let vm_pin_ctl_requested:u32 = 0;
-        let mut vm_cpu_ctl_requested:u32 = 0;
-        let mut vm_cpu_ctl2_requested:u32 = 0;
-        let mut vm_enter_ctl_requested:u32 = 0;
-        let mut vm_exit_ctl_requested:u32 = 0;
-
-        vm_cpu_ctl_requested |= vmx_cpu_based_controls::ACTIVATE_SECONDARY_CONTROL;
-        vm_cpu_ctl_requested |= vmx_cpu_based_controls::USE_MSR_BITMAPS; // msr
-        vm_cpu_ctl_requested |= vmx_cpu_based_controls::USE_TSC_OFFSETING; // combine with rdtscp
-
-        vm_cpu_ctl2_requested |= vmx_secondary_cpu_based_controls::ENABLE_RDTSCP;
-        vm_cpu_ctl2_requested |= vmx_secondary_cpu_based_controls::ENABLE_INVPCID;
-        vm_cpu_ctl2_requested |= vmx_secondary_cpu_based_controls::ENABLE_XSAVESX_STORS;
-
-        vm_enter_ctl_requested |= vmx_vm_enter_controls::LOAD_DEBUG_CONTROLS; // dr
-        vm_enter_ctl_requested |= vmx_vm_enter_controls::IA32E_MODE_GUEST;
-        
-        vm_exit_ctl_requested |= vmx_vm_exit_controls::HOST_ADDRESS_SPACE_SIZE;
-
-
-        // msr bitmap
-        let bit_map_read_low: *mut u32 = self.vm_resources.msr_bitmap as _;
-        let bit_map_read_high: *mut u32 = (bit_map_read_low as u64 + 1024) as _;
+    fn init_msr_bitmap(&mut self) {
+        let bit_map_read_low: *mut u32 = self.vm_resources.msr_bitmap as _; // 0-00001FFF 
+        let bit_map_read_high: *mut u32 = (bit_map_read_low as u64 + 1024) as _; // C0000000 - C0001FFF
         let bit_map_write_low: *mut u32 = (bit_map_read_high as u64 + 1024) as _;
         let bit_map_write_high: *mut u32 = (bit_map_write_low as u64 + 1024) as _;
 
@@ -235,6 +204,7 @@ impl Vcpu {
             RtlInitializeBitMap(&mut bit_map_write_high_header as _, bit_map_write_high, 1024 * 8);   
         }
 
+        // rw msr will vm-exit when specific msr bit set
         unsafe{
             RtlSetBit(&mut bit_map_read_low_header as _, msr::msr_index::MSR_IA32_FEATURE_CONTROL);
             RtlSetBit(&mut bit_map_read_low_header as _, msr::msr_index::MSR_IA32_DEBUGCTL);
@@ -252,17 +222,87 @@ impl Vcpu {
             }
         }
 
-        // __vmx_vmwrite(MSR_BITMAP, unsafe {
-        //     MmGetPhysicalAddress(self.vm_resources.msr_bitmap).QuadPart as _   
-        // });
+        // MSR BitMap
+        __vmx_vmwrite(MSR_BITMAP, unsafe {
+            MmGetPhysicalAddress(self.vm_resources.msr_bitmap).QuadPart as _   
+        });
+
+    }
+
+    fn set_vmcs_data(&mut self) {
+
+        let vm_pin_ctl_requested:u32 = 0;
+        let mut vm_cpu_ctl_requested:u32 = 0;
         
+        let mut vm_enter_ctl_requested:u32 = 0;
+        let mut vm_exit_ctl_requested:u32 = 0;
+
+        let vmx_feature =  unsafe { &__GD.as_mut().unwrap().vmx_data.as_mut().unwrap().vmx_features } ;
+
+        // fixed bit
+        let mut vmx_pin: u64 = read_msr(msr::msr_index::MSR_IA32_VMX_PINBASED_CTLS);
+        let mut vmx_cpu: u64 = read_msr(msr::msr_index::MSR_IA32_VMX_PROCBASED_CTLS);
+        
+        // let vmx_tertiary: u64 = read_msr(msr::msr_index::MSR_IA32_VMX_PROCBASED_CTLS3); // maybe need
+        let mut vmx_exit: u64 = read_msr(msr::msr_index::MSR_IA32_VMX_EXIT_CTLS);
+        // let mut vmx_exit_secondary: u64 = read_msr(msr::msr_index::MSR_IA32_VMX_EXIT_CTLS2); // maybe need
+        let mut vmx_entry: u64 = read_msr(msr::msr_index::MSR_IA32_VMX_ENTRY_CTLS);
+
+        // true msr
+        if vmx_feature.true_msrs {
+            vmx_pin = read_msr(msr::msr_index::MSR_IA32_VMX_TRUE_PINBASED_CTLS);
+            vmx_cpu = read_msr(msr::msr_index::MSR_IA32_VMX_TRUE_PROCBASED_CTLS);
+            vmx_exit = read_msr(msr::msr_index::MSR_IA32_VMX_TRUE_EXIT_CTLS);
+            vmx_entry = read_msr(msr::msr_index::MSR_IA32_VMX_TRUE_ENTRY_CTLS);
+        }
+
+        if vmx_feature.secondary_controls {
+            vm_cpu_ctl_requested |= vmx_cpu_based_controls::VMX_PROC_CTLS_USE_SECONDARY_CTLS;
+
+            let mut vm_cpu_ctl2_requested:u32 = 0;
+
+            // ept
+            if vmx_feature.ept {
+                let vmx_data = unsafe { __GD.as_mut().unwrap().vmx_data.as_mut().unwrap() };
+                vm_cpu_ctl2_requested |= vmx_secondary_cpu_based_controls::VMX_PROC_CTLS2_EPT;
+
+                if vmx_feature.vpid {
+                    vm_cpu_ctl2_requested |= vmx_secondary_cpu_based_controls::VMX_PROC_CTLS2_VPID;
+                    __vmx_vmwrite(VIRTUAL_PROCESSOR_ID, 1); // greater than 0
+                }
+
+                __vmx_vmwrite(EPT_POINTER, vmx_data.ept_state.as_mut().unwrap().get_ept_pointer());
+            }
+
+            let vmx_cpu_secondary: u64 = read_msr(msr::msr_index::MSR_IA32_VMX_PROCBASED_CTLS2);
+
+            // other
+            vm_cpu_ctl2_requested |= vmx_secondary_cpu_based_controls::VMX_PROC_CTLS2_RDTSCP;
+            vm_cpu_ctl2_requested |= vmx_secondary_cpu_based_controls::VMX_PROC_CTLS2_INVPCID;
+            vm_cpu_ctl2_requested |= vmx_secondary_cpu_based_controls::VMX_PROC_CTLS2_XSAVES_XRSTORS;
+            
+            //Secondary
+            __vmx_vmwrite(SECONDARY_VM_EXEC_CONTROL as _,
+                self.vmxp_adjust_msr(vmx_cpu_secondary, vm_cpu_ctl2_requested) as u64
+            );
+        }
+        
+        // cpu
+        vm_cpu_ctl_requested |= vmx_cpu_based_controls::VMX_PROC_CTLS_USE_MSR_BITMAPS; // msr
+        vm_cpu_ctl_requested |= vmx_cpu_based_controls::VMX_PROC_CTLS_USE_TSC_OFFSETTING; // combine with rdtscp
+
+        // vm_enter
+        vm_enter_ctl_requested |= vmx_vm_enter_controls::VMX_ENTRY_CTLS_LOAD_DEBUG; // dr
+        vm_enter_ctl_requested |= vmx_vm_enter_controls::VMX_ENTRY_CTLS_IA32E_MODE_GUEST;
+        
+        // vm_exit
+        vm_exit_ctl_requested |= vmx_vm_exit_controls::VMX_EXIT_CTLS_HOST_ADDR_SPACE_SIZE;
+
+        // msr bitmap
+        self.init_msr_bitmap();
+
         // non root mode execute vmread can get this value
         __vmx_vmwrite(VMCS_LINK_POINTER as _, u64::MAX);
-
-        //Secondary
-        __vmx_vmwrite(SECONDARY_VM_EXEC_CONTROL as _,
-            self.vmxp_adjust_msr(vmx_sec, vm_cpu_ctl2_requested) as u64
-        );
 
         //PIN
         __vmx_vmwrite(
@@ -270,7 +310,7 @@ impl Vcpu {
             self.vmxp_adjust_msr(vmx_pin, vm_pin_ctl_requested) as u64
         );
 
-        //CPU
+        //CPU Processor
         __vmx_vmwrite(
             CPU_BASED_VM_EXEC_CONTROL as _,
             self.vmxp_adjust_msr(vmx_cpu, vm_cpu_ctl_requested) as u64
@@ -494,6 +534,7 @@ impl Vcpu {
                 VmxInstructionResult::VmxSuccess => {
                     self.vmxon = false;
                     self.vcpu_vmx_state = VcpuVmxState::VmxStateOff;
+                    println!("already exit vmx root mode");
                 }
                 _ => {
                     println!("Vmxoff execute error:{}",__vmx_read_error());
@@ -575,18 +616,48 @@ impl Vmm {
         Self {
             cpu_count: cpu_count,
             vmx_features: VMXFeatures::default(),
+            ept_state: Option::None,
             vcpu: vcpus,
         }
     }
 
-    // todo
-    fn check_and_set_features(&self) {
+    fn check_and_set_features(&mut self) {
+        let vmx_basic = read_msr(MSR_IA32_VMX_BASIC);
+        self.vmx_features.true_msrs = (vmx_basic & VMX_BASIC_TRUE_CTLS) != 0;
 
+        let mut vmx_proc = read_msr(MSR_IA32_VMX_PROCBASED_CTLS) >> 32;
+        if self.vmx_features.true_msrs{
+            vmx_proc = read_msr(MSR_IA32_VMX_TRUE_PROCBASED_CTLS) >> 32;
+        }
+
+        self.vmx_features.secondary_controls = (vmx_proc & VMX_PROC_CTLS_USE_SECONDARY_CTLS as u64) != 0;
+        
+        if self.vmx_features.secondary_controls {
+            let vmx_proc2 = read_msr(MSR_IA32_VMX_PROCBASED_CTLS2) >> 32;
+
+            self.vmx_features.ept = (vmx_proc2 & VMX_PROC_CTLS2_EPT as u64) != 0;
+            self.vmx_features.vpid = (vmx_proc2 & VMX_PROC_CTLS2_VPID as u64) != 0;
+            self.vmx_features.vmfunc = (vmx_proc2 & VMX_PROC_CTLS2_VMFUNC as u64) != 0;
+
+            if self.vmx_features.ept {
+                let ept_vpid_cap = read_msr(MSR_IA32_VMX_EPT_VPID_CAP);
+                self.vmx_features.exec_only_ept = (ept_vpid_cap & ia32_vmx_ept_vpid_cap_msr::MSR_IA32_VMX_EPT_VPID_CAP_RWX_X_ONLY) != 0;
+                self.vmx_features.inv_single_address = (ept_vpid_cap & ia32_vmx_ept_vpid_cap_msr::MSR_IA32_VMX_EPT_VPID_CAP_INVVPID_INDIV_ADDR) != 0;
+            }
+        }
+
+        if in_vmware() {
+            self.vmx_features.in_vmware = true;
+        }
+        
     }
 
-    pub fn init(&mut self) {
+    pub fn start(&mut self) -> Result<(),()>{
         println!("Start to check vmx features");
         self.check_and_set_features();
+        if self.vmx_features.ept {
+            self.ept_state = Some(EptState::new());
+        }
 
         for i in 0..self.cpu_count {
             unsafe { KeSetSystemAffinityThread(1 << i) };
@@ -595,6 +666,14 @@ impl Vmm {
             vcpu.start_vt();
             unsafe { KeRevertToUserAffinityThread() };
         }
+
+        for item in & self.vcpu {
+            if item.vcpu_vmx_state != VcpuVmxState::VmxStateOn {
+                return Err(());
+            }   
+        }
+
+        Ok(())
     }
 
     pub fn get_current_vcpu(&mut self) -> &mut Vcpu {
@@ -659,7 +738,6 @@ struct VmxVmcs {
 }
 const PAGE_SIZE: usize = 4096; 
 
-#[allow(dead_code)]
 #[derive(Debug, Default)]
 struct VMXFeatures {
     secondary_controls: bool,      // Secondary controls are enabled
@@ -669,4 +747,5 @@ struct VMXFeatures {
     exec_only_ept: bool,            // EPT translation with execute-only access is supported
     inv_single_address: bool,       // IVVPID for single address
     vmfunc: bool,                 // VMFUNC is supported
+    in_vmware: bool,               
 }

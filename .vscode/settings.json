@@ -9,6 +9,10 @@
         ".\\Cargo.toml",
         ".\\Cargo.toml",
         ".\\Cargo.toml",
-        ".\\Cargo.toml"
+        ".\\Cargo.toml",
+        ".\\dependencies\\moon-driver-utils\\Cargo.toml",
+        ".\\dependencies\\moon-driver-utils\\Cargo.toml",
+        ".\\dependencies\\moon-driver-utils\\Cargo.toml",
+        ".\\dependencies\\moon-driver-utils\\Cargo.toml"
     ]
 }

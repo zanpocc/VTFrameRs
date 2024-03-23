@@ -6,6 +6,7 @@ pub mod driver;
 pub mod utils;
 pub mod gd;
 pub mod inner;
+pub mod mem;
 
 extern crate alloc;
 // #[cfg(not(test))]
@@ -13,6 +14,7 @@ extern crate wdk_panic;
 
 use device::{device::Device, ioctl::IoControl, symbolic_link::SymbolicLink};
 use driver::driver::Driver;
+use mem::mem::PageTableTansform;
 use moon_struct::check_os_version;
 use wdk::println;
 // #[cfg(not(test))]
@@ -35,12 +37,13 @@ pub unsafe extern "system" fn driver_entry(
 ) -> NTSTATUS {
     let status = STATUS_SUCCESS;
 
-    __GD = Some(GD::new());
+    __GD = Some(GD::default());
 
     match check_os_version(){
         Ok(_) => {}
         Err(e) => {
             println!("{}",e);
+            __GD.take();
             return STATUS_UNSUCCESSFUL;
         }
     }
@@ -49,6 +52,17 @@ pub unsafe extern "system" fn driver_entry(
         Ok(_) => {}
         Err(e) => {
             println!("{}",e);
+            __GD.take();
+            return STATUS_UNSUCCESSFUL;
+        }
+    }
+
+    match PageTableTansform::new(true) {
+        Ok(ptt) => {
+            __GD.as_mut().unwrap().ptt = Some(ptt);
+        }
+        Err(()) => {
+            __GD.take();
             return STATUS_UNSUCCESSFUL;
         }
     }
@@ -67,20 +81,24 @@ pub unsafe extern "system" fn driver_entry(
                     },
                     Err(e) => {
                         println!("{}",e);
+                        __GD.take();
+                        return STATUS_UNSUCCESSFUL;
                     }
                 }
 
                 gd.vmx_data = Some(Vmm::new());
-                match &mut gd.vmx_data {
-                    Some(v) => {
-                        v.init();
-                    },
-                    None => {}
+                match gd.vmx_data.as_mut().unwrap().start() {
+                    Ok(_) => {}
+                    Err(_) => {
+                        __GD.take();
+                        return STATUS_UNSUCCESSFUL;
+                    }
                 }
             }
         },
         Err(err) => {
             println!("{}", err);
+            __GD.take();
             return STATUS_UNSUCCESSFUL;
         }
     }

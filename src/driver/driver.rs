@@ -1,9 +1,10 @@
 
 use alloc::boxed::Box;
+use moon_driver_utils::string::{u16_slice_to_unicode_string, string_to_u16_slice};
 use wdk::println;
 use wdk_sys::{ntddk::IoCreateDevice, DRIVER_OBJECT, NT_SUCCESS};
 
-use crate::{device::device::{ DeviceExtension, DeviceOperations, DeviceOperationsVtable}, utils::utils::{create_unicode_string, string_to_utf16_slice}};
+use crate::device::device::{ DeviceExtension, DeviceOperations, DeviceOperationsVtable};
 
 use crate::Device;
 
@@ -25,8 +26,8 @@ impl Driver {
         // Box the data
         let data = Box::new(data);
 
-        let name = string_to_utf16_slice(name);
-        let mut name_ptr = create_unicode_string(name.as_slice());   
+        let name = string_to_u16_slice(name);
+        let mut name_ptr = u16_slice_to_unicode_string(name.as_slice());   
 
 
         let mut device = core::ptr::null_mut();

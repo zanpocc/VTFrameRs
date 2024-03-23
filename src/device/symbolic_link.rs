@@ -1,8 +1,8 @@
 use alloc::vec::Vec;
+use moon_driver_utils::string::{u16_slice_to_unicode_string, string_to_u16_slice};
 use wdk::println;
 use wdk_sys::{ntddk::{IoCreateSymbolicLink, IoDeleteSymbolicLink}, NT_SUCCESS};
 
-use crate::utils::utils::{create_unicode_string, string_to_utf16_slice};
 
 pub struct SymbolicLink {
     name: Vec<u16>,
@@ -11,7 +11,7 @@ pub struct SymbolicLink {
 impl SymbolicLink {
     pub fn new(name: &str, target: &str) -> Result<Self, & 'static str> {
         // str to u16[]
-        let name = string_to_utf16_slice(name);
+        let name = string_to_u16_slice(name);
 
         // whatever 
         match Self::create(&name,target){
@@ -28,11 +28,11 @@ impl SymbolicLink {
 
     pub fn create(name: &Vec<u16>,target: &str) -> Result<(), & 'static str> {
         // Convert the name to UTF-16 and then create a UNICODE_STRING.
-        let mut name_ptr = create_unicode_string(name.as_slice());
+        let mut name_ptr = u16_slice_to_unicode_string(name.as_slice());
 
         // Convert the target to UTF-16 and then create a UNICODE_STRING.
-        let target = string_to_utf16_slice(target);
-        let mut target_ptr = create_unicode_string(target.as_slice());
+        let target = string_to_u16_slice(target);
+        let mut target_ptr = u16_slice_to_unicode_string(target.as_slice());
 
         let status = unsafe {
             IoCreateSymbolicLink(&mut name_ptr, &mut target_ptr)
@@ -47,7 +47,7 @@ impl SymbolicLink {
     }
 
     fn delete(name: &Vec<u16>) {
-        let mut name_ptr = create_unicode_string(name.as_slice());
+        let mut name_ptr = u16_slice_to_unicode_string(name.as_slice());
 
         unsafe{
             let status = IoDeleteSymbolicLink(&mut name_ptr);

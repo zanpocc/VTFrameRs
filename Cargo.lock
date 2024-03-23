@@ -331,6 +331,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 
 [[package]]
+name = "moon-driver-utils"
+version = "0.1.0"
+dependencies = [
+ "moon-instructions",
+ "moon-struct",
+ "wdk",
+ "wdk-sys",
+]
+
+[[package]]
+name = "moon-feature"
+version = "0.1.0"
+dependencies = [
+ "moon-driver-utils",
+ "moon-instructions",
+ "moon-struct",
+]
+
+[[package]]
 name = "moon-instructions"
 version = "0.1.0"
 dependencies = [
@@ -461,6 +480,8 @@ version = "0.1.0"
 dependencies = [
  "cty",
  "lazy_static",
+ "moon-driver-utils",
+ "moon-feature",
  "moon-instructions",
  "moon-struct",
  "wdk",

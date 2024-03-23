@@ -1,13 +1,14 @@
 use core::arch::global_asm;
 
-use moon_instructions::{__debugbreak, cpuidex, lgdt, lidt, read_msr, write_cr3, write_msr};
-use moon_struct::{inner::KDESCRIPTOR, msr::{self, ia32_feature_control_msr::{ENABLE_VMXON, LOCK_MASK}, msr_index::{MSR_FS_BASE, MSR_GS_BASE, MSR_IA32_DEBUGCTL, MSR_IA32_FEATURE_CONTROL, VMWARE_MSR2}}};
+use moon_instructions::{cpuidex, debugbreak, lgdt, lidt, read_msr, write_cr3, write_msr};
+use moon_struct::{inner::KDESCRIPTOR, msr::{self, ia32_feature_control_msr::{MSR_IA32_FEATURE_CONTROL_LOCK, MSR_IA32_FEATURE_CONTROL_VMXON}, msr_index::{MSR_FS_BASE, MSR_GS_BASE, MSR_IA32_DEBUGCTL, MSR_IA32_FEATURE_CONTROL}}};
 use wdk::println;
 use wdk_sys::{ntddk::KeGetCurrentIrql, LARGE_INTEGER};
 
-use crate::vmx::{data::vmcs_encoding::{EXIT_QUALIFICATION, GUEST_LINEAR_ADDRESS, GUEST_PHYSICAL_ADDRESS, GUEST_RFLAGS, GUEST_RIP, GUEST_RSP, VM_EXIT_REASON}, ins::vmcs_read};
+use crate::vmx::{data::{vmcs_encoding::{EXIT_QUALIFICATION, GUEST_LINEAR_ADDRESS, GUEST_PHYSICAL_ADDRESS, GUEST_RFLAGS, GUEST_RIP, GUEST_RSP, VM_EXIT_REASON}, TYPE_CR_READ, TYPE_CR_WRITE}, ins::vmcs_read};
 
-use super::{data::{mov_cr_qualification, vm_call::VM_CALL_CLOSE_VT, vmcs_encoding::{CR0_READ_SHADOW, CR4_READ_SHADOW, GUEST_CR0, GUEST_CR3, GUEST_CR4, GUEST_FS_BASE, GUEST_GDTR_BASE, GUEST_GDTR_LIMIT, GUEST_GS_BASE, GUEST_IA32_DEBUGCTL, GUEST_IDTR_BASE, GUEST_IDTR_LIMIT, VM_EXIT_INSTRUCTION_LEN}, TYPE_MOV_FROM_CR, TYPE_MOV_TO_CR}, ins::{VmxInstructionResult, __vmx_off, __vmx_vmwrite}};
+use super::{data::{mov_cr_qualification, vm_call::VM_CALL_CLOSE_VT, vmcs_encoding::{CR0_READ_SHADOW, CR4_READ_SHADOW, GUEST_CR0, GUEST_CR3, GUEST_CR4, GUEST_FS_BASE, GUEST_GDTR_BASE, GUEST_GDTR_LIMIT, GUEST_GS_BASE, GUEST_IA32_DEBUGCTL, GUEST_IDTR_BASE, GUEST_IDTR_LIMIT, VM_EXIT_INSTRUCTION_LEN}}, ins::{VmxInstructionResult, __vmx_off, __vmx_vmwrite}};
+
 
 global_asm!(r#"
 .section .text
@@ -205,15 +206,15 @@ fn vm_exit_msr_read(guest_state: &mut GuestState) {
         MSR_IA32_FEATURE_CONTROL => {
             msr_value.QuadPart = vmcs_read(ecx as _) as _;
             unsafe{
-                msr_value.QuadPart |= ENABLE_VMXON as i64;
-                msr_value.QuadPart |= LOCK_MASK as i64;
+                msr_value.QuadPart |= MSR_IA32_FEATURE_CONTROL_VMXON as i64;
+                msr_value.QuadPart |= MSR_IA32_FEATURE_CONTROL_LOCK as i64;
             }
         }
         msr::msr_index::MSR_IA32_VMX_BASIC..=msr::msr_index::MSR_IA32_VMX_VMFUNC => {
             // todo vmx msr
             println!("vmx msr:{:X}",ecx);
         }
-        VMWARE_MSR2 => {
+        msr::msr_index::MSR_CRASH_CTL => {
             msr_value.QuadPart = read_msr(ecx as _) as _;
         }
         _ => {
@@ -264,13 +265,16 @@ fn vm_exit_msr_write(guest_state: &mut GuestState) {
             // todo vmx msr
             println!("vmx msr:{:X}",ecx);
         }   
-        msr::msr_index::VMWARE_MSR | msr::msr_index::VMWARE_MSR3 | msr::msr_index::VMWARE_MSR4 => {
+        msr::msr_index::MSR_STIMER0_CONFIG | msr::msr_index::MSR_STIMER0_COUNT | msr::msr_index::MSR_CRASH_P0 => {
             write_msr(ecx as _, unsafe{ msr_value.QuadPart } as _);
         }
         _ => {
             if ecx >= msr::msr_index::MSR_RESERVED_MIN && ecx <= msr::msr_index::MSR_RESERVED_MAX {
                 // todo inject event
             } else if ecx == msr::msr_index::MSR_UNKNOWN || ecx == msr::msr_index::MSR_UNKNOWN2 {
+                // vmware shutdown will R/W this msr
+                // vt checkpoint
+
                 // todo inject event
             }
 
@@ -316,7 +320,7 @@ fn vm_exit_cr_access(guest_state: &mut GuestState) {
     println!("cr access reg={:X},at={:X}",reg,access_type);
 
     match access_type {
-        TYPE_MOV_TO_CR => {
+        TYPE_CR_WRITE => {
             let control_register = data & mov_cr_qualification::CONTROL_REGISTER_MASK as u64;
             match control_register {
                 0 => {
@@ -336,7 +340,7 @@ fn vm_exit_cr_access(guest_state: &mut GuestState) {
             }
             
         }
-        TYPE_MOV_FROM_CR => {
+        TYPE_CR_READ => {
             let control_register = data & mov_cr_qualification::CONTROL_REGISTER_MASK as u64;
             match control_register {
                 0 => {
@@ -362,12 +366,22 @@ fn vm_exit_cr_access(guest_state: &mut GuestState) {
 
 fn vm_exit_unknown(guest_state: &mut GuestState) {
     println!("vm_exit_unknown,resaoin:{},rip:{:X}",guest_state.exit_reason,guest_state.guest_rip);
-    __debugbreak();
+    debugbreak!();
+}
+
+fn vm_exit_ept_misconfig(guest_state: &mut GuestState) {
+    println!("todo vm_exit_ept_misconfig");
+    debugbreak!();
+}
+
+fn vm_exit_ept_violation(guest_state: &mut GuestState) {
+    println!("todo vm_exit_ept_violation");
+    debugbreak!();
 }
 
 type ExitHandler = fn(guest_state: &mut GuestState);
 static EXIT_HANDLER:[ExitHandler;65] = [
-    vm_exit_unknown,        // 00 EXIT_REASON_EXCEPTION_NMI
+    vm_exit_unknown,      // 00 EXIT_REASON_EXCEPTION_NMI
     vm_exit_unknown,      // 01 EXIT_REASON_EXTERNAL_INTERRUPT
     vm_exit_unknown,      // 02 EXIT_REASON_TRIPLE_FAULT
     vm_exit_unknown,      // 03 EXIT_REASON_INIT
@@ -380,49 +394,49 @@ static EXIT_HANDLER:[ExitHandler;65] = [
     vm_exit_cpuid,        // 10 EXIT_REASON_CPUID
     vm_exit_unknown,      // 11 EXIT_REASON_GETSEC
     vm_exit_unknown,      // 12 EXIT_REASON_HLT
-    vm_exit_unknown,         // 13 EXIT_REASON_INVD
+    vm_exit_unknown,      // 13 EXIT_REASON_INVD
     vm_exit_unknown,      // 14 EXIT_REASON_INVLPG
     vm_exit_unknown,      // 15 EXIT_REASON_RDPMC
-    vm_exit_unknown,        // 16 EXIT_REASON_RDTSC
+    vm_exit_unknown,      // 16 EXIT_REASON_RDTSC
     vm_exit_unknown,      // 17 EXIT_REASON_RSM
     vm_exit_vmcall,       // 18 EXIT_REASON_VMCALL
-    vm_exit_unknown,         // 19 EXIT_REASON_VMCLEAR
-    vm_exit_unknown,         // 20 EXIT_REASON_VMLAUNCH
-    vm_exit_unknown,         // 21 EXIT_REASON_VMPTRLD
-    vm_exit_unknown,         // 22 EXIT_REASON_VMPTRST
-    vm_exit_unknown,         // 23 EXIT_REASON_VMREAD
-    vm_exit_unknown,         // 24 EXIT_REASON_VMRESUME
-    vm_exit_unknown,         // 25 EXIT_REASON_VMWRITE
-    vm_exit_unknown,         // 26 EXIT_REASON_VMXOFF
-    vm_exit_unknown,         // 27 EXIT_REASON_VMXON
-    vm_exit_cr_access,           // 28 EXIT_REASON_CR_ACCESS
+    vm_exit_unknown,      // 19 EXIT_REASON_VMCLEAR
+    vm_exit_unknown,      // 20 EXIT_REASON_VMLAUNCH
+    vm_exit_unknown,      // 21 EXIT_REASON_VMPTRLD
+    vm_exit_unknown,      // 22 EXIT_REASON_VMPTRST
+    vm_exit_unknown,      // 23 EXIT_REASON_VMREAD
+    vm_exit_unknown,      // 24 EXIT_REASON_VMRESUME
+    vm_exit_unknown,      // 25 EXIT_REASON_VMWRITE
+    vm_exit_unknown,      // 26 EXIT_REASON_VMXOFF
+    vm_exit_unknown,      // 27 EXIT_REASON_VMXON
+    vm_exit_cr_access,    // 28 EXIT_REASON_CR_ACCESS
     vm_exit_unknown,      // 29 EXIT_REASON_DR_ACCESS
     vm_exit_unknown,      // 30 EXIT_REASON_IO_INSTRUCTION
-    vm_exit_msr_read,      // 31 EXIT_REASON_MSR_READ
-    vm_exit_msr_write,     // 32 EXIT_REASON_MSR_WRITE
-    vm_exit_unknown,  // 33 EXIT_REASON_INVALID_GUEST_STATE
-    vm_exit_unknown,  // 34 EXIT_REASON_MSR_LOADING
+    vm_exit_msr_read,     // 31 EXIT_REASON_MSR_READ
+    vm_exit_msr_write,    // 32 EXIT_REASON_MSR_WRITE
+    vm_exit_unknown,      // 33 EXIT_REASON_INVALID_GUEST_STATE
+    vm_exit_unknown,      // 34 EXIT_REASON_MSR_LOADING
     vm_exit_unknown,      // 35 EXIT_REASON_RESERVED_35
     vm_exit_unknown,      // 36 EXIT_REASON_MWAIT_INSTRUCTION
-    vm_exit_unknown,          // 37 EXIT_REASOM_MTF
+    vm_exit_unknown,      // 37 EXIT_REASOM_MTF
     vm_exit_unknown,      // 38 EXIT_REASON_RESERVED_38
     vm_exit_unknown,      // 39 EXIT_REASON_MONITOR_INSTRUCTION
     vm_exit_unknown,      // 40 EXIT_REASON_PAUSE_INSTRUCTION
-    vm_exit_unknown,  // 41 EXIT_REASON_MACHINE_CHECK
+    vm_exit_unknown,      // 41 EXIT_REASON_MACHINE_CHECK
     vm_exit_unknown,      // 42 EXIT_REASON_RESERVED_42
     vm_exit_unknown,      // 43 EXIT_REASON_TPR_BELOW_THRESHOLD
     vm_exit_unknown,      // 44 EXIT_REASON_APIC_ACCESS
     vm_exit_unknown,      // 45 EXIT_REASON_VIRTUALIZED_EIO
     vm_exit_unknown,      // 46 EXIT_REASON_XDTR_ACCESS
     vm_exit_unknown,      // 47 EXIT_REASON_TR_ACCESS
-    vm_exit_unknown, // 48 EXIT_REASON_EPT_VIOLATION
-    vm_exit_unknown, // 49 EXIT_REASON_EPT_MISCONFIG
-    vm_exit_unknown,         // 50 EXIT_REASON_INVEPT
-    vm_exit_unknown,       // 51 EXIT_REASON_RDTSCP
+    vm_exit_ept_violation,// 48 EXIT_REASON_EPT_VIOLATION
+    vm_exit_ept_misconfig,// 49 EXIT_REASON_EPT_MISCONFIG
+    vm_exit_unknown,      // 50 EXIT_REASON_INVEPT
+    vm_exit_unknown,      // 51 EXIT_REASON_RDTSCP
     vm_exit_unknown,      // 52 EXIT_REASON_PREEMPT_TIMER
-    vm_exit_unknown,         // 53 EXIT_REASON_INVVPID
-    vm_exit_unknown,         // 54 EXIT_REASON_WBINVD
-    vm_exit_unknown,       // 55 EXIT_REASON_XSETBV
+    vm_exit_unknown,      // 53 EXIT_REASON_INVVPID
+    vm_exit_unknown,      // 54 EXIT_REASON_WBINVD
+    vm_exit_unknown,      // 55 EXIT_REASON_XSETBV
     vm_exit_unknown,      // 56 EXIT_REASON_APIC_WRITE
     vm_exit_unknown,      // 57 EXIT_REASON_RDRAND
     vm_exit_unknown,      // 58 EXIT_REASON_INVPCID
@@ -473,7 +487,7 @@ unsafe extern "C" fn vmx_exit_handler(context: &mut Context) -> u64 {
 
     if __vmx_off() != VmxInstructionResult::VmxSuccess {
         println!("vmx_off execute error");
-        __debugbreak();
+        debugbreak!();
     }
 
     return guest_state.guest_rip + ins_len;

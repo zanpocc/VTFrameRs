@@ -2,11 +2,15 @@ pub mod check;
 pub mod vmx;
 pub mod data;
 pub mod vmm;
+pub mod ept;
+
 
 pub mod ins {
     use core::{arch::asm, ffi::c_void};
 
     use wdk::println;
+
+    use crate::vmx::data::VM_INSTRUCTION_ERROR_MAP;
 
     use super::data::vmcs_encoding::VM_INSTRUCTION_ERROR;
 
@@ -206,16 +210,16 @@ pub mod ins {
         VmxInstructionResult::from(result)
     }
 
-    pub fn __vmx_read_error() -> u64 {
+    pub fn __vmx_read_error() -> &'static str {
         let mut error_code:u64 = 0;
         match __vmx_vmread(VM_INSTRUCTION_ERROR,&mut error_code) {
             VmxInstructionResult::VmxSuccess => {
                 println!("Read ins error code success:{}",error_code);
-                return error_code;
+                return VM_INSTRUCTION_ERROR_MAP[error_code as usize];
             },
             _ => {
                 println!("error to read vmlaunch error code");
-                return !0u64;
+                return "error to read vmlaunch error code";
             }
         }
     }

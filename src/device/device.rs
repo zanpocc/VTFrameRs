@@ -11,9 +11,6 @@ pub struct Device{
     pub raw: *mut DEVICE_OBJECT,
 }
 
-unsafe impl Send for Device {}
-unsafe impl Sync for Device {}
-
 impl Drop for Device {
     fn drop(&mut self) {
         // must use into_raw() set raw point to null after Device::from_raw()
