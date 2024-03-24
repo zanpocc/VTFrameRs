@@ -1,13 +1,14 @@
 use core::arch::global_asm;
 
+use moon_driver_utils::bitfield::set_bits_value32;
 use moon_instructions::{cpuidex, debugbreak, lgdt, lidt, read_msr, write_cr3, write_msr};
+use moon_log::{error, warn};
 use moon_struct::{inner::KDESCRIPTOR, msr::{self, ia32_feature_control_msr::{MSR_IA32_FEATURE_CONTROL_LOCK, MSR_IA32_FEATURE_CONTROL_VMXON}, msr_index::{MSR_FS_BASE, MSR_GS_BASE, MSR_IA32_DEBUGCTL, MSR_IA32_FEATURE_CONTROL}}};
-use wdk::println;
 use wdk_sys::{ntddk::KeGetCurrentIrql, LARGE_INTEGER};
 
 use crate::vmx::{data::{vmcs_encoding::{EXIT_QUALIFICATION, GUEST_LINEAR_ADDRESS, GUEST_PHYSICAL_ADDRESS, GUEST_RFLAGS, GUEST_RIP, GUEST_RSP, VM_EXIT_REASON}, TYPE_CR_READ, TYPE_CR_WRITE}, ins::vmcs_read};
 
-use super::{data::{mov_cr_qualification, vm_call::VM_CALL_CLOSE_VT, vmcs_encoding::{CR0_READ_SHADOW, CR4_READ_SHADOW, GUEST_CR0, GUEST_CR3, GUEST_CR4, GUEST_FS_BASE, GUEST_GDTR_BASE, GUEST_GDTR_LIMIT, GUEST_GS_BASE, GUEST_IA32_DEBUGCTL, GUEST_IDTR_BASE, GUEST_IDTR_LIMIT, VM_EXIT_INSTRUCTION_LEN}}, ins::{VmxInstructionResult, __vmx_off, __vmx_vmwrite}};
+use super::{data::{interrupt_inject_info::{TYPE_LEN, TYPE_START, VALID, VECTOR_LEN, VECTOR_START}, interrupt_type::INTERRUPT_HARDWARE_EXCEPTION, mov_cr_qualification, vector_exception::VECTOR_INVALID_OPCODE_EXCEPTION, vm_call::VM_CALL_CLOSE_VT, vmcs_encoding::{CR0_READ_SHADOW, CR4_READ_SHADOW, GUEST_CR0, GUEST_CR3, GUEST_CR4, GUEST_FS_BASE, GUEST_GDTR_BASE, GUEST_GDTR_LIMIT, GUEST_GS_BASE, GUEST_IA32_DEBUGCTL, GUEST_IDTR_BASE, GUEST_IDTR_LIMIT, VM_ENTRY_INSTRUCTION_LEN, VM_ENTRY_INTR_INFO_FIELD, VM_EXIT_INSTRUCTION_LEN}}, ins::{VmxInstructionResult, __vmx_off, __vmx_vmwrite}};
 
 
 global_asm!(r#"
@@ -157,6 +158,19 @@ fn vmx_advance_eip(guest_state: &mut GuestState) {
     __vmx_vmwrite(GUEST_RIP, guest_state.guest_rip);
 }
 
+fn vmx_inject_event(interrupt_type: u32,vector_exception: u8,write_length: u32) {
+    let mut inject_event:u32 = 0;
+
+    inject_event = set_bits_value32(inject_event,VECTOR_START,VECTOR_LEN,vector_exception as _);
+    inject_event = set_bits_value32(inject_event,TYPE_START,TYPE_LEN,interrupt_type as _);
+    inject_event |= VALID;
+
+    __vmx_vmwrite(VM_ENTRY_INTR_INFO_FIELD, inject_event as _);
+    if write_length > 0 {
+        __vmx_vmwrite(VM_ENTRY_INSTRUCTION_LEN, write_length as _);
+    }
+}
+
 fn vm_exit_cpuid(guest_state: &mut GuestState) {
 
     let cpuinfo = cpuidex(unsafe { guest_state.guest_regs.as_ref().unwrap().rax as _ },unsafe { guest_state.guest_regs.as_ref().unwrap().rcx as _ });
@@ -179,7 +193,7 @@ fn vm_exit_vmcall(guest_state: &mut GuestState) {
             return;
         }
         _ =>{
-            println!("Unknown vmcall command");
+            error!("Unknown vmcall command");
         }
     }
 
@@ -191,7 +205,6 @@ fn vm_exit_msr_read(guest_state: &mut GuestState) {
     let mut msr_value = LARGE_INTEGER::default();
 
     let ecx: u32 = unsafe { guest_state.guest_regs.as_mut().unwrap().rcx } as u32;
-    println!("msr read:{:X}",ecx);
 
     match ecx {
         MSR_GS_BASE => {
@@ -212,17 +225,17 @@ fn vm_exit_msr_read(guest_state: &mut GuestState) {
         }
         msr::msr_index::MSR_IA32_VMX_BASIC..=msr::msr_index::MSR_IA32_VMX_VMFUNC => {
             // todo vmx msr
-            println!("vmx msr:{:X}",ecx);
+            warn!("vmx msr:{:X}",ecx);
         }
         msr::msr_index::MSR_CRASH_CTL => {
             msr_value.QuadPart = read_msr(ecx as _) as _;
         }
         _ => {
-            if ecx >= msr::msr_index::MSR_RESERVED_MIN && ecx <= msr::msr_index::MSR_RESERVED_MAX {
-                // todo inject event
-            } else if ecx == msr::msr_index::MSR_UNKNOWN || ecx == msr::msr_index::MSR_UNKNOWN2 {
-                // todo inject event
-            }
+            // if ecx >= msr::msr_index::MSR_RESERVED_MIN && ecx <= msr::msr_index::MSR_RESERVED_MAX {
+            //     // todo inject event
+            // } else if ecx == msr::msr_index::MSR_UNKNOWN || ecx == msr::msr_index::MSR_UNKNOWN2 {
+            //     // todo inject event
+            // }
 
             msr_value.QuadPart = read_msr(ecx) as _;
         }
@@ -240,8 +253,6 @@ fn vm_exit_msr_read(guest_state: &mut GuestState) {
 fn vm_exit_msr_write(guest_state: &mut GuestState) {
     let mut msr_value = LARGE_INTEGER::default();
     let ecx: u32 = unsafe { guest_state.guest_regs.as_mut().unwrap().rcx } as u32;
-
-    println!("msr write:{:X}",ecx);
 
     unsafe{
         msr_value.u.LowPart = guest_state.guest_regs.as_ref().unwrap().rax as _;
@@ -263,19 +274,21 @@ fn vm_exit_msr_write(guest_state: &mut GuestState) {
         }
         msr::msr_index::MSR_IA32_VMX_BASIC..=msr::msr_index::MSR_IA32_VMX_VMFUNC => {
             // todo vmx msr
-            println!("vmx msr:{:X}",ecx);
-        }   
+            warn!("vmx msr:{:X}",ecx);
+        }
+        // VMware
         msr::msr_index::MSR_STIMER0_CONFIG | msr::msr_index::MSR_STIMER0_COUNT | msr::msr_index::MSR_CRASH_P0 => {
             write_msr(ecx as _, unsafe{ msr_value.QuadPart } as _);
         }
         _ => {
             if ecx >= msr::msr_index::MSR_RESERVED_MIN && ecx <= msr::msr_index::MSR_RESERVED_MAX {
-                // todo inject event
+                warn!("MSR_RESERVED:{:X}",ecx);
+                vmx_inject_event(INTERRUPT_HARDWARE_EXCEPTION,VECTOR_INVALID_OPCODE_EXCEPTION,0);
+                return;
             } else if ecx == msr::msr_index::MSR_UNKNOWN || ecx == msr::msr_index::MSR_UNKNOWN2 {
-                // vmware shutdown will R/W this msr
-                // vt checkpoint
-
-                // todo inject event
+                warn!("MSR_UNKNOWN:{:X}",ecx);
+                vmx_inject_event(INTERRUPT_HARDWARE_EXCEPTION,VECTOR_INVALID_OPCODE_EXCEPTION,0);
+                return;
             }
 
             write_msr(ecx, unsafe{ msr_value.QuadPart } as _);
@@ -306,18 +319,16 @@ fn get_cr_select_register(index: u32,guest_state: &mut GuestState) -> &mut u64 {
         14 => unsafe { &mut guest_state.guest_regs.as_mut().unwrap().r14 }
         15 => unsafe { &mut guest_state.guest_regs.as_mut().unwrap().r15 }
         _ => {
-            println!("unknown cr index");
+            error!("unknown cr index");
             panic!();
         }
     }
 }
 
 fn vm_exit_cr_access(guest_state: &mut GuestState) {
-    let data: u64 = guest_state.exit_qualification; // MOV_CR_QUALIFICATION
-    let reg: &mut u64 = get_cr_select_register((data & mov_cr_qualification::REGISTER_MASK as u64) as u32,guest_state);
+    let data = guest_state.exit_qualification; // MOV_CR_QUALIFICATION
+    let reg = get_cr_select_register((data & mov_cr_qualification::REGISTER_MASK as u64) as u32,guest_state);
     let access_type = (data & mov_cr_qualification::ACCESS_TYPE_MASK as u64) as u32;
-
-    println!("cr access reg={:X},at={:X}",reg,access_type);
 
     match access_type {
         TYPE_CR_WRITE => {
@@ -335,10 +346,9 @@ fn vm_exit_cr_access(guest_state: &mut GuestState) {
                     __vmx_vmwrite(CR4_READ_SHADOW, *reg);
                 }
                 _ => {
-                    println!("unknown cr write");
+                    error!("unknown cr write");
                 }
             }
-            
         }
         TYPE_CR_READ => {
             let control_register = data & mov_cr_qualification::CONTROL_REGISTER_MASK as u64;
@@ -353,29 +363,33 @@ fn vm_exit_cr_access(guest_state: &mut GuestState) {
                     *reg = vmcs_read(GUEST_CR4);
                 }
                 _ => {
-                    println!("unknown cr read");
+                    error!("unknown cr read");
                 }
             }
         }
         _ => {
-            println!("error cr access type");
+            error!("error cr access type");
         }
     }
 
 }
 
+fn vm_exit_vmop(_guest_state: &mut GuestState) {
+    vmx_inject_event(INTERRUPT_HARDWARE_EXCEPTION, VECTOR_INVALID_OPCODE_EXCEPTION, 0 );
+}
+
 fn vm_exit_unknown(guest_state: &mut GuestState) {
-    println!("vm_exit_unknown,resaoin:{},rip:{:X}",guest_state.exit_reason,guest_state.guest_rip);
+    warn!("vm_exit_unknown,resaoin:{},rip:{:X}",guest_state.exit_reason,guest_state.guest_rip);
     debugbreak!();
 }
 
-fn vm_exit_ept_misconfig(guest_state: &mut GuestState) {
-    println!("todo vm_exit_ept_misconfig");
+fn vm_exit_ept_misconfig(_guest_state: &mut GuestState) {
+    warn!("todo vm_exit_ept_misconfig");
     debugbreak!();
 }
 
-fn vm_exit_ept_violation(guest_state: &mut GuestState) {
-    println!("todo vm_exit_ept_violation");
+fn vm_exit_ept_violation(_guest_state: &mut GuestState) {
+    warn!("todo vm_exit_ept_violation");
     debugbreak!();
 }
 
@@ -400,15 +414,15 @@ static EXIT_HANDLER:[ExitHandler;65] = [
     vm_exit_unknown,      // 16 EXIT_REASON_RDTSC
     vm_exit_unknown,      // 17 EXIT_REASON_RSM
     vm_exit_vmcall,       // 18 EXIT_REASON_VMCALL
-    vm_exit_unknown,      // 19 EXIT_REASON_VMCLEAR
-    vm_exit_unknown,      // 20 EXIT_REASON_VMLAUNCH
-    vm_exit_unknown,      // 21 EXIT_REASON_VMPTRLD
-    vm_exit_unknown,      // 22 EXIT_REASON_VMPTRST
-    vm_exit_unknown,      // 23 EXIT_REASON_VMREAD
-    vm_exit_unknown,      // 24 EXIT_REASON_VMRESUME
-    vm_exit_unknown,      // 25 EXIT_REASON_VMWRITE
-    vm_exit_unknown,      // 26 EXIT_REASON_VMXOFF
-    vm_exit_unknown,      // 27 EXIT_REASON_VMXON
+    vm_exit_vmop,         // 19 EXIT_REASON_VMCLEAR
+    vm_exit_vmop,         // 20 EXIT_REASON_VMLAUNCH
+    vm_exit_vmop,         // 21 EXIT_REASON_VMPTRLD
+    vm_exit_vmop,         // 22 EXIT_REASON_VMPTRST
+    vm_exit_vmop,         // 23 EXIT_REASON_VMREAD
+    vm_exit_vmop,         // 24 EXIT_REASON_VMRESUME
+    vm_exit_vmop,         // 25 EXIT_REASON_VMWRITE
+    vm_exit_vmop,         // 26 EXIT_REASON_VMXOFF
+    vm_exit_vmop,         // 27 EXIT_REASON_VMXON
     vm_exit_cr_access,    // 28 EXIT_REASON_CR_ACCESS
     vm_exit_unknown,      // 29 EXIT_REASON_DR_ACCESS
     vm_exit_unknown,      // 30 EXIT_REASON_IO_INSTRUCTION
@@ -431,10 +445,10 @@ static EXIT_HANDLER:[ExitHandler;65] = [
     vm_exit_unknown,      // 47 EXIT_REASON_TR_ACCESS
     vm_exit_ept_violation,// 48 EXIT_REASON_EPT_VIOLATION
     vm_exit_ept_misconfig,// 49 EXIT_REASON_EPT_MISCONFIG
-    vm_exit_unknown,      // 50 EXIT_REASON_INVEPT
+    vm_exit_vmop,         // 50 EXIT_REASON_INVEPT
     vm_exit_unknown,      // 51 EXIT_REASON_RDTSCP
     vm_exit_unknown,      // 52 EXIT_REASON_PREEMPT_TIMER
-    vm_exit_unknown,      // 53 EXIT_REASON_INVVPID
+    vm_exit_vmop,         // 53 EXIT_REASON_INVVPID
     vm_exit_unknown,      // 54 EXIT_REASON_WBINVD
     vm_exit_unknown,      // 55 EXIT_REASON_XSETBV
     vm_exit_unknown,      // 56 EXIT_REASON_APIC_WRITE
@@ -486,7 +500,7 @@ unsafe extern "C" fn vmx_exit_handler(context: &mut Context) -> u64 {
     write_cr3(vmcs_read(GUEST_CR3));
 
     if __vmx_off() != VmxInstructionResult::VmxSuccess {
-        println!("vmx_off execute error");
+        error!("vmx_off execute error");
         debugbreak!();
     }
 

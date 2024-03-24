@@ -1,7 +1,7 @@
 
 use alloc::boxed::Box;
 use moon_driver_utils::string::{u16_slice_to_unicode_string, string_to_u16_slice};
-use wdk::println;
+use moon_log::info;
 use wdk_sys::{ntddk::IoCreateDevice, DRIVER_OBJECT, NT_SUCCESS};
 
 use crate::device::device::{ DeviceExtension, DeviceOperations, DeviceOperationsVtable};
@@ -48,7 +48,7 @@ impl Driver {
             return Err("CreateDevice error");
         }
 
-        println!("CreateDevice success");
+        info!("CreateDevice success");
 
         let device = unsafe {
             Device::from_raw(device) 

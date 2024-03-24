@@ -1,6 +1,6 @@
 
 use alloc::boxed::Box;
-use wdk::println;
+use moon_log::info;
 use wdk_sys::{ntddk::IoDeleteDevice, DEVICE_OBJECT, IRP, IRP_MJ_CLEANUP, IRP_MJ_CLOSE, IRP_MJ_CREATE, NTSTATUS, STATUS_INVALID_PARAMETER, STATUS_SUCCESS, STATUS_UNSUCCESSFUL};
 
 use crate::inner::io_get_current_irp_stack_location;
@@ -19,7 +19,7 @@ impl Drop for Device {
             return;
         }
 
-        println!("Start drop device");
+        info!("Start drop device");
 
         unsafe {
             // Release Data
@@ -168,7 +168,7 @@ extern fn release_callback<T: DeviceOperations>(
         let ptr = core::mem::replace(&mut (*extension).data, core::ptr::null_mut());
         let _ = Box::from_raw(ptr as *mut T);
 
-        println!("release device point success");
+        info!("release device point success");
     }
 }
 

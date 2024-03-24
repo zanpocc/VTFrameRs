@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
 use moon_driver_utils::string::{u16_slice_to_unicode_string, string_to_u16_slice};
-use wdk::println;
+use moon_log::{error, info};
 use wdk_sys::{ntddk::{IoCreateSymbolicLink, IoDeleteSymbolicLink}, NT_SUCCESS};
 
 
@@ -39,7 +39,7 @@ impl SymbolicLink {
         };
 
         if !NT_SUCCESS(status) {
-            println!("CreateSymbolicLink error:{:X}",status);
+            error!("CreateSymbolicLink error:{:X}",status);
             return Err("CreateSymbolicLink error");
         }
 
@@ -52,7 +52,7 @@ impl SymbolicLink {
         unsafe{
             let status = IoDeleteSymbolicLink(&mut name_ptr);
             if !NT_SUCCESS(status) {
-                println!("DeleteSymbolicLink error:{:X}",status);
+                error!("DeleteSymbolicLink error:{:X}",status);
             }
         }
     }
@@ -60,7 +60,7 @@ impl SymbolicLink {
 
 impl Drop for SymbolicLink {
     fn drop(&mut self) {
-        println!("Start Drop symboliclink");
+        info!("Start Drop symboliclink");
         Self::delete(&self.name);
     }
 }

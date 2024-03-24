@@ -9,14 +9,16 @@ pub mod inner;
 pub mod mem;
 
 extern crate alloc;
+
 // #[cfg(not(test))]
 extern crate wdk_panic;
 
 use device::{device::Device, ioctl::IoControl, symbolic_link::SymbolicLink};
 use driver::driver::Driver;
 use mem::mem::PageTableTansform;
+use moon_log::{error, info};
 use moon_struct::check_os_version;
-use wdk::println;
+
 // #[cfg(not(test))]
 use wdk_alloc::WDKAllocator;
 
@@ -37,12 +39,14 @@ pub unsafe extern "system" fn driver_entry(
 ) -> NTSTATUS {
     let status = STATUS_SUCCESS;
 
+    info!("driver entry");
+
     __GD = Some(GD::default());
 
     match check_os_version(){
         Ok(_) => {}
         Err(e) => {
-            println!("{}",e);
+            error!("{}",e);
             __GD.take();
             return STATUS_UNSUCCESSFUL;
         }
@@ -51,7 +55,7 @@ pub unsafe extern "system" fn driver_entry(
     match check_vmx_cpu_support() {
         Ok(_) => {}
         Err(e) => {
-            println!("{}",e);
+            error!("{}",e);
             __GD.take();
             return STATUS_UNSUCCESSFUL;
         }
@@ -80,7 +84,7 @@ pub unsafe extern "system" fn driver_entry(
                         gd.symbolic_link = Some(v);
                     },
                     Err(e) => {
-                        println!("{}",e);
+                        error!("{}",e);
                         __GD.take();
                         return STATUS_UNSUCCESSFUL;
                     }
@@ -97,7 +101,7 @@ pub unsafe extern "system" fn driver_entry(
             }
         },
         Err(err) => {
-            println!("{}", err);
+            error!("{}", err);
             __GD.take();
             return STATUS_UNSUCCESSFUL;
         }
@@ -115,5 +119,5 @@ pub unsafe extern "C" fn driver_unload(_driver: *mut DRIVER_OBJECT) {
     // clear resources when drvier unload
     __GD.take();
 
-    println!("DriverUnload Success");
+    info!("DriverUnload Success");
 }

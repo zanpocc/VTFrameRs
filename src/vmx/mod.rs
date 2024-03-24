@@ -8,7 +8,7 @@ pub mod ept;
 pub mod ins {
     use core::{arch::asm, ffi::c_void};
 
-    use wdk::println;
+    use moon_log::{error, info};
 
     use crate::vmx::data::VM_INSTRUCTION_ERROR_MAP;
 
@@ -137,7 +137,7 @@ pub mod ins {
         }
 
         if result != 0 {
-            println!("__vmx_vmwrite error");
+            error!("__vmx_vmwrite error");
         }
         
         VmxInstructionResult::from(result)
@@ -214,11 +214,11 @@ pub mod ins {
         let mut error_code:u64 = 0;
         match __vmx_vmread(VM_INSTRUCTION_ERROR,&mut error_code) {
             VmxInstructionResult::VmxSuccess => {
-                println!("Read ins error code success:{}",error_code);
+                info!("Read ins error code success:{}",error_code);
                 return VM_INSTRUCTION_ERROR_MAP[error_code as usize];
             },
             _ => {
-                println!("error to read vmlaunch error code");
+                error!("error to read vmlaunch error code");
                 return "error to read vmlaunch error code";
             }
         }

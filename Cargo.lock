@@ -357,6 +357,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "moon-log"
+version = "0.1.0"
+dependencies = [
+ "wdk",
+ "wdk-sys",
+]
+
+[[package]]
 name = "moon-struct"
 version = "0.1.0"
 dependencies = [
@@ -483,6 +491,7 @@ dependencies = [
  "moon-driver-utils",
  "moon-feature",
  "moon-instructions",
+ "moon-log",
  "moon-struct",
  "wdk",
  "wdk-alloc",

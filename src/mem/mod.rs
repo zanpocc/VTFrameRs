@@ -1,7 +1,6 @@
 pub mod mem {
     use cty::c_void;
     use moon_instructions::read_cr3;
-    use wdk::println;
     use wdk_sys::{ntddk::MmGetVirtualForPhysical, PHYSICAL_ADDRESS};
 
     #[derive(Default)]
@@ -56,8 +55,6 @@ pub mod mem {
                 result.pxe_end = 0xFFFFF6FB7DBEE000;
                 result.pte_end = 0xFFFFF70000000000;
             }
-
-            println!("pte:{:X},{:X},{:X},{:X}",result.pte_base,result.pde_base,result.ppe_base,result.pxe_base);
 
             Ok(result)
         }

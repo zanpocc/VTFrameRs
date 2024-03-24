@@ -4,8 +4,8 @@ use alloc::vec::Vec;
 use moon_driver_utils::bitfield::{create_end_mask, get_bits_value, set_bits_value};
 use moon_feature::in_vmware;
 use moon_instructions::{read_msr, segment_limit, write_cr0, write_cr4};
+use moon_log::{error, info};
 use moon_struct::{inner::{GdtEntry64, GDTENTRY64_ACCESS_RIGHTS, KGDTENTRY64, KPROCESSOR_STATE}, msr::{self, ia32_vmx_ept_vpid_cap_msr, msr_index::{MSR_IA32_VMX_BASIC, MSR_IA32_VMX_EPT_VPID_CAP, MSR_IA32_VMX_PROCBASED_CTLS, MSR_IA32_VMX_PROCBASED_CTLS2, MSR_IA32_VMX_TRUE_PROCBASED_CTLS}}};
-use wdk::println;
 use wdk_sys::{ntddk::{KeQueryActiveProcessorCount, KeRevertToUserAffinityThread, KeSetSystemAffinityThread, MmAllocateContiguousMemory, MmFreeContiguousMemory, MmGetPhysicalAddress, RtlCaptureContext, RtlInitializeBitMap, RtlSetBit}, CONTEXT, KERNEL_STACK_SIZE, PAGE_READWRITE, PHYSICAL_ADDRESS, RTL_BITMAP, USHORT, _LARGE_INTEGER};
 
 use crate::{inner::{KeSaveStateForHibernate, RtlRestoreContext}, utils::utils::{ get_current_processor_idx, protect_non_paged_memory}, vmx::{data::vmcs_encoding::{CR0_GUEST_HOST_MASK, HOST_FS_BASE, HOST_GS_BASE, HOST_TR_BASE}, ins::{__vmx_on, __vmx_read_error, __vmx_vmclear, __vmx_vmlaunch, __vmx_vmptrld}}, __GD};
@@ -94,7 +94,7 @@ impl Vcpu {
         match __vmx_on(phys as _) {
             VmxInstructionResult::VmxSuccess => {}
             _ => {
-                println!("vmx error code:{}",__vmx_read_error());
+                error!("vmx error code:{}",__vmx_read_error());
                 return Err("vmxon execute fault");
             }
         }
@@ -109,7 +109,7 @@ impl Vcpu {
         match __vmx_vmclear(phys as _) {
             VmxInstructionResult::VmxSuccess => {}
             _ => {
-                println!("vmx error code:{}",__vmx_read_error());
+                error!("vmx error code:{}",__vmx_read_error());
                 return Err("vmclear execute fault");
             }
         }
@@ -118,7 +118,7 @@ impl Vcpu {
         match __vmx_vmptrld(phys as _) {
             VmxInstructionResult::VmxSuccess => {}
             _ => {
-                println!("vmx error code:{}",__vmx_read_error());
+                error!("vmx error code:{}",__vmx_read_error());
                 return Err("vmclear execute fault");
             }
         }
@@ -510,24 +510,22 @@ impl Vcpu {
         match self.enter_vmx_root_mode() {
             Ok(_) =>{}
             Err(e) => {
-                println!("{}",e);
+                error!("{}",e);
                 return;
             }
         }
 
-        println!("already enter vmx root mode");
+        info!("already enter vmx root mode");
 
         self.set_vmcs_data();
 
         self.vcpu_vmx_state = VcpuVmxState::VmxStateTransition;
 
-        println!("CPU:{} begin to execute vmlaunch",get_current_processor_idx());
-
         // vm-entry by execute vmlaunch instruction
         // from vmm to guest
         __vmx_vmlaunch();
 
-        println!("Vmlaunch error:{}",__vmx_read_error());
+        error!("Vmlaunch error:{}",__vmx_read_error());
 
         // this signifies an error occurrence if reaches next code during execution
         if self.vmxon {
@@ -535,10 +533,10 @@ impl Vcpu {
                 VmxInstructionResult::VmxSuccess => {
                     self.vmxon = false;
                     self.vcpu_vmx_state = VcpuVmxState::VmxStateOff;
-                    println!("already exit vmx root mode");
+                    info!("already exit vmx root mode");
                 }
                 _ => {
-                    println!("Vmxoff execute error:{}",__vmx_read_error());
+                    error!("Vmxoff execute error:{}",__vmx_read_error());
                 }
             }
         }
@@ -567,7 +565,7 @@ impl Vcpu {
             },
             VcpuVmxState::VmxStateOn => {
                 // all success
-                println!("CPU:{} start vt success",self.cpu_index);
+                info!("CPU:{} start vt success",self.cpu_index);
             },
         }
     }
@@ -594,7 +592,7 @@ impl Vmm {
     pub fn new() -> Self {
         let cpu_count = unsafe { KeQueryActiveProcessorCount(core::ptr::null_mut()) } as u32;
 
-        println!("cpu_count:{}", cpu_count);
+        info!("cpu_count:{}", cpu_count);
 
         let mut vcpus: Vec<Vcpu> = Vec::with_capacity(cpu_count as _);
 
@@ -654,7 +652,6 @@ impl Vmm {
     }
 
     pub fn start(&mut self) -> Result<(),()>{
-        println!("Start to check vmx features");
         self.check_and_set_features();
         if self.vmx_features.ept {
             self.ept_state = Some(EptState::new());
@@ -692,10 +689,10 @@ impl Drop for Vmm {
 
                     match __vmx_vmcall(VM_CALL_CLOSE_VT,0,0,0) {
                         VmxInstructionResult::VmxSuccess => {
-                            println!("CPU:{} Close VT Success",cvcpu.cpu_index);
+                            info!("CPU:{} Close VT Success",cvcpu.cpu_index);
                         },
                         _ => {
-                            println!("Vmxcall execute error");
+                            error!("Vmxcall execute error");
                         },
                     }
 
@@ -704,11 +701,11 @@ impl Drop for Vmm {
                 _ => {
                     if cvcpu.vmxon {
                         unsafe { KeSetSystemAffinityThread(1 << cvcpu.cpu_index) };
-                        println!("vmxoff exec");
+                        info!("vmxoff exec");
                         match __vmx_off(){
                             VmxInstructionResult::VmxSuccess => {}
                             _ => {
-                                println!("Vmxoff execute error");
+                                error!("Vmxoff execute error");
                             }
                         }
                         unsafe { KeRevertToUserAffinityThread() };
@@ -749,4 +746,6 @@ struct VMXFeatures {
     inv_single_address: bool,       // IVVPID for single address
     vmfunc: bool,                 // VMFUNC is supported
     in_vmware: bool,               
+    // meltdown: bool,                 // intel meltdown
+    // spectre: bool,                  // intel and amd spectre
 }

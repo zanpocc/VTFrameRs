@@ -554,6 +554,52 @@ pub const VM_INSTRUCTION_ERROR_MAP: [&str; 28] = [
     "Invalid operand to INVEPT/INVVPID"
 ];
 
+pub mod interrupt_type {
+    pub const INTERRUPT_EXTERNAL: u32             = 0;
+    pub const INTERRUPT_NMI: u32                  = 2;
+    pub const INTERRUPT_HARDWARE_EXCEPTION: u32   = 3;
+    pub const INTERRUPT_SOFTWARE: u32             = 4;
+    pub const INTERRUPT_PRIVILIGED_EXCEPTION: u32 = 5;
+    pub const INTERRUPT_SOFTWARE_EXCEPTION: u32   = 6;
+    pub const INTERRUPT_OTHER_EVENT: u32          = 7;
+}
+
+pub mod vector_exception {
+    pub const VECTOR_DIVIDE_ERROR_EXCEPTION:u8          = 0;
+    pub const VECTOR_DEBUG_EXCEPTION:u8                 = 1;
+    pub const VECTOR_NMI_INTERRUPT:u8                   = 2;
+    pub const VECTOR_BREAKPOINT_EXCEPTION:u8            = 3;
+    pub const VECTOR_OVERFLOW_EXCEPTION:u8              = 4;
+    pub const VECTOR_BOUND_EXCEPTION:u8                 = 5;
+    pub const VECTOR_INVALID_OPCODE_EXCEPTION:u8        = 6;
+    pub const VECTOR_DEVICE_NOT_AVAILABLE_EXCEPTION:u8  = 7;
+    pub const VECTOR_DOUBLE_FAULT_EXCEPTION:u8          = 8;
+    pub const VECTOR_COPROCESSOR_SEGMENT_OVERRUN:u8     = 9;
+    pub const VECTOR_INVALID_TSS_EXCEPTION:u8           = 10;
+    pub const VECTOR_SEGMENT_NOT_PRESENT:u8             = 11;
+    pub const VECTOR_STACK_FAULT_EXCEPTION:u8           = 12;
+    pub const VECTOR_GENERAL_PROTECTION_EXCEPTION:u8    = 13;
+    pub const VECTOR_PAGE_FAULT_EXCEPTION:u8            = 14;
+    pub const VECTOR_X87_FLOATING_POINT_ERROR:u8        = 16;
+    pub const VECTOR_ALIGNMENT_CHECK_EXCEPTION:u8       = 17;
+    pub const VECTOR_MACHINE_CHECK_EXCEPTION:u8         = 18;
+    pub const VECTOR_SIMD_FLOATING_POINT_EXCEPTION:u8   = 19;
+    pub const VECTOR_VIRTUALIZATION_EXCEPTION:u8        = 20;
+}
+
+pub mod interrupt_inject_info {
+    use moon_struct::RT_BIT_32;
+
+    pub const VECTOR_START:u32 = 0;
+    pub const VECTOR_LEN:u32 = 8;
+
+    pub const TYPE_START:u32 = 8;
+    pub const TYPE_LEN:u32 = 3;
+
+    pub const DELIVER_ERROR_CODE:u32 = RT_BIT_32!(11);
+    
+    pub const VALID:u32 = RT_BIT_32!(31);
+}
 
 #[allow(unused)]
 pub(crate) mod mov_cr_qualification {

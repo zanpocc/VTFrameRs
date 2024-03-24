@@ -3,8 +3,8 @@ pub mod ept {
 
     use moon_driver_utils::bitfield::{get_bits_value, set_bits_value};
     use moon_instructions::{bit_scan_forward64, read_msr, stosq};
+    use moon_log::{error, info};
     use moon_struct::msr::{ia32_mtrr_capabilities_msr, ia32_mtrr_phys_base_msr, ia32_mtrr_phys_mask_msr, msr_index::{MSR_IA32_MTRR_CAPABILITIES, MSR_IA32_MTRR_PHYSBASE0, MSR_IA32_MTRR_PHYSMASK0}};
-    use wdk::println;
     use wdk_sys::{ntddk::{memset, MmAllocateContiguousMemory, MmFreeContiguousMemory}, LIST_ENTRY, PAGE_SIZE, PHYSICAL_ADDRESS};
 
     use crate::{inner::initialize_list_head, utils::utils::virtual_address_to_physical_address, vmx::data::{pml3e, pml2e_2mb, ept_memory_type::{MEMORY_TYPE_UNCACHEABLE, MEMORY_TYPE_WRITE_BACK}, ept_pointer, pml4e}};
@@ -72,11 +72,8 @@ pub mod ept {
                         self.number_of_enabled_memory_ranges -= 1;
                     }
 
-                    println!("Mtrr range:{:X},{:X},{:X}",descriptor.physical_base_address,descriptor.physical_end_address,descriptor.memory_type);
                 }
             }
-
-            println!("Total MTRR Ranges Committed:{}",self.number_of_enabled_memory_ranges);
         }
 
         fn ept_setup_pml2_entry(&mut self, new_entry: &mut u64, pfn: u64) {
@@ -117,7 +114,7 @@ pub mod ept {
             } as _;
 
             if page_table.is_null() {
-                println!("error to allocate page_table memory");
+                error!("error to allocate page_table memory");
                 panic!();
             }
 
@@ -195,10 +192,10 @@ pub mod ept {
 
     impl Drop for EptState{
         fn drop(&mut self) {
-            println!("EptState Drop");
+            info!("EptState Drop");
             if let Some(ept_table) = self.ept_page_table {
                 if !ept_table.is_null() {
-                    println!("free ept data");
+                    info!("free ept data");
                     unsafe { MmFreeContiguousMemory(ept_table as _) };
                 }
             }

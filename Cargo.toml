@@ -19,6 +19,7 @@ moon-struct = { path = "./dependencies/moon-struct",version = "*" }
 moon-instructions = { path = "./dependencies/moon-instructions",version = "*" }
 moon-feature = { path = "./dependencies/moon-feature",version = "*" }
 moon-driver-utils = { path = "./dependencies/moon-driver-utils",version = "*" }
+moon-log = { path = "./dependencies/moon-log",version = "*" }
 
 [build-dependencies]
 wdk-build = "0.2.0"

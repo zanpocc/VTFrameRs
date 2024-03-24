@@ -1,5 +1,5 @@
 pub mod gd {
-    use wdk::println;
+    use moon_log::info;
 
     use crate::{device::{device::Device, symbolic_link::SymbolicLink}, mem::mem::PageTableTansform, vmx::vmx::Vmm};
 
@@ -13,7 +13,7 @@ pub mod gd {
 
     impl Drop for GD {
         fn drop(&mut self) {
-            println!("Start drop GD");
+            info!("Start drop GD");
         }
     }
 
