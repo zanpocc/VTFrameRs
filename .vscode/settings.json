@@ -13,6 +13,7 @@
         ".\\dependencies\\moon-driver-utils\\Cargo.toml",
         ".\\dependencies\\moon-driver-utils\\Cargo.toml",
         ".\\dependencies\\moon-driver-utils\\Cargo.toml",
-        ".\\dependencies\\moon-driver-utils\\Cargo.toml"
+        ".\\dependencies\\moon-driver-utils\\Cargo.toml",
+        ".\\Cargo.toml"
     ]
 }

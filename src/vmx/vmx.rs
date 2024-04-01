@@ -32,10 +32,10 @@ pub struct Vcpu {
 }
 
 pub struct Vmm {
-    cpu_count: u32,
-    vmx_features: VMXFeatures,
-    ept_state: Option<EptState>,
-    vcpu: Vec<Vcpu>,
+    pub cpu_count: u32,
+    pub vmx_features: VMXFeatures,
+    pub ept_state: Option<EptState>,
+    pub vcpu: Vec<Vcpu>,
 }
 
 impl Vcpu {
@@ -736,16 +736,16 @@ struct VmxVmcs {
 }
 const PAGE_SIZE: usize = 4096; 
 
-#[derive(Debug, Default)]
-struct VMXFeatures {
-    secondary_controls: bool,      // Secondary controls are enabled
-    true_msrs: bool,               // True VMX MSR values are supported
-    ept: bool,                    // EPT supported by CPU
-    vpid: bool,                   // VPID supported by CPU
-    exec_only_ept: bool,            // EPT translation with execute-only access is supported
-    inv_single_address: bool,       // IVVPID for single address
-    vmfunc: bool,                 // VMFUNC is supported
-    in_vmware: bool,               
+#[derive(Default)]
+pub struct VMXFeatures {
+    pub secondary_controls: bool,      // Secondary controls are enabled
+    pub true_msrs: bool,               // True VMX MSR values are supported
+    pub ept: bool,                    // EPT supported by CPU
+    pub vpid: bool,                   // VPID supported by CPU
+    pub exec_only_ept: bool,            // EPT translation with execute-only access is supported
+    pub inv_single_address: bool,       // IVVPID for single address
+    pub vmfunc: bool,                 // VMFUNC is supported
+    pub in_vmware: bool,               
     // meltdown: bool,                 // intel meltdown
     // spectre: bool,                  // intel and amd spectre
 }

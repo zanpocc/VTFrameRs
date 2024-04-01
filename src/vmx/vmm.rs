@@ -6,7 +6,7 @@ use moon_log::{error, warn};
 use moon_struct::{inner::KDESCRIPTOR, msr::{self, ia32_feature_control_msr::{MSR_IA32_FEATURE_CONTROL_LOCK, MSR_IA32_FEATURE_CONTROL_VMXON}, msr_index::{MSR_FS_BASE, MSR_GS_BASE, MSR_IA32_DEBUGCTL, MSR_IA32_FEATURE_CONTROL}}};
 use wdk_sys::{ntddk::KeGetCurrentIrql, LARGE_INTEGER};
 
-use crate::vmx::{data::{vmcs_encoding::{EXIT_QUALIFICATION, GUEST_LINEAR_ADDRESS, GUEST_PHYSICAL_ADDRESS, GUEST_RFLAGS, GUEST_RIP, GUEST_RSP, VM_EXIT_REASON}, TYPE_CR_READ, TYPE_CR_WRITE}, ins::vmcs_read};
+use crate::{vmx::{data::{vmcs_encoding::{EXIT_QUALIFICATION, GUEST_LINEAR_ADDRESS, GUEST_PHYSICAL_ADDRESS, GUEST_RFLAGS, GUEST_RIP, GUEST_RSP, VM_EXIT_REASON}, TYPE_CR_READ, TYPE_CR_WRITE}, ins::vmcs_read}, __GD};
 
 use super::{data::{interrupt_inject_info::{TYPE_LEN, TYPE_START, VALID, VECTOR_LEN, VECTOR_START}, interrupt_type::INTERRUPT_HARDWARE_EXCEPTION, mov_cr_qualification, vector_exception::VECTOR_INVALID_OPCODE_EXCEPTION, vm_call::VM_CALL_CLOSE_VT, vmcs_encoding::{CR0_READ_SHADOW, CR4_READ_SHADOW, GUEST_CR0, GUEST_CR3, GUEST_CR4, GUEST_FS_BASE, GUEST_GDTR_BASE, GUEST_GDTR_LIMIT, GUEST_GS_BASE, GUEST_IA32_DEBUGCTL, GUEST_IDTR_BASE, GUEST_IDTR_LIMIT, VM_ENTRY_INSTRUCTION_LEN, VM_ENTRY_INTR_INFO_FIELD, VM_EXIT_INSTRUCTION_LEN}}, ins::{VmxInstructionResult, __vmx_off, __vmx_vmwrite}};
 
@@ -281,17 +281,19 @@ fn vm_exit_msr_write(guest_state: &mut GuestState) {
             write_msr(ecx as _, unsafe{ msr_value.QuadPart } as _);
         }
         _ => {
-            if ecx >= msr::msr_index::MSR_RESERVED_MIN && ecx <= msr::msr_index::MSR_RESERVED_MAX {
-                warn!("MSR_RESERVED:{:X}",ecx);
-                vmx_inject_event(INTERRUPT_HARDWARE_EXCEPTION,VECTOR_INVALID_OPCODE_EXCEPTION,0);
-                return;
-            } else if ecx == msr::msr_index::MSR_UNKNOWN || ecx == msr::msr_index::MSR_UNKNOWN2 {
-                warn!("MSR_UNKNOWN:{:X}",ecx);
-                vmx_inject_event(INTERRUPT_HARDWARE_EXCEPTION,VECTOR_INVALID_OPCODE_EXCEPTION,0);
-                return;
+            if unsafe { __GD.as_mut().unwrap().vmx_data.as_mut().unwrap().vmx_features.in_vmware } {
+                write_msr(ecx, unsafe{ msr_value.QuadPart } as _);
+            } else {
+                if ecx >= msr::msr_index::MSR_RESERVED_MIN && ecx <= msr::msr_index::MSR_RESERVED_MAX {
+                    warn!("MSR_RESERVED:{:X}",ecx);
+                    vmx_inject_event(INTERRUPT_HARDWARE_EXCEPTION,VECTOR_INVALID_OPCODE_EXCEPTION,0);
+                    return;
+                } else if ecx == msr::msr_index::MSR_UNKNOWN || ecx == msr::msr_index::MSR_UNKNOWN2 {
+                    warn!("MSR_UNKNOWN:{:X}",ecx);
+                    vmx_inject_event(INTERRUPT_HARDWARE_EXCEPTION,VECTOR_INVALID_OPCODE_EXCEPTION,0);
+                    return;
+                }
             }
-
-            write_msr(ecx, unsafe{ msr_value.QuadPart } as _);
         }
     }
 

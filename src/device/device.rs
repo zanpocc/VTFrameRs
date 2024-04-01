@@ -1,7 +1,7 @@
 
 use alloc::boxed::Box;
 use moon_log::info;
-use wdk_sys::{ntddk::IoDeleteDevice, DEVICE_OBJECT, IRP, IRP_MJ_CLEANUP, IRP_MJ_CLOSE, IRP_MJ_CREATE, NTSTATUS, STATUS_INVALID_PARAMETER, STATUS_SUCCESS, STATUS_UNSUCCESSFUL};
+use wdk_sys::{ntddk::IoDeleteDevice, DEVICE_OBJECT, IRP, IRP_MJ_CLEANUP, IRP_MJ_CLOSE, IRP_MJ_CREATE, NTSTATUS, STATUS_SUCCESS, STATUS_UNSUCCESSFUL};
 
 use crate::inner::io_get_current_irp_stack_location;
 
@@ -123,6 +123,12 @@ pub trait DeviceOperations {
 
         Ok(())
     }
+
+    fn others(&mut self, _device: &Device, request: &IoRequest) -> Result<(), & 'static str> {
+        request.complete(Ok(0));
+
+        Ok(())
+    }
 }
 
 // dispatch irp
@@ -139,10 +145,7 @@ extern "C" fn dispatch_callback<T: DeviceOperations>(
         IRP_MJ_CREATE => data.create(&device, &request),
         IRP_MJ_CLOSE => data.close(&device, &request),
         IRP_MJ_CLEANUP => data.cleanup(&device, &request),
-        _ => {
-            request.complete(Err("INVALID_PARAMETER"));
-            return STATUS_INVALID_PARAMETER;
-        }
+        _ => data.others(&device, &request),
     };
 
     // must into,too dangerous

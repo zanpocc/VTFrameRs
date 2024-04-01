@@ -1,3 +1,4 @@
+use cty::c_void;
 use wdk_sys::{ntddk::IofCompleteRequest, IO_NO_INCREMENT, IO_STACK_LOCATION, IRP, STATUS_SUCCESS, STATUS_UNSUCCESSFUL};
 
 use crate::inner::io_get_current_irp_stack_location;
@@ -7,7 +8,7 @@ pub struct IoRequest {
 }
 
 impl IoRequest {
-    pub fn complete(&self, value: Result<u32, & 'static str>) {
+    pub fn complete(&self, value: Result<usize, & 'static str>) {
         let irp = self.as_raw_mut();
 
         match value {
@@ -45,4 +46,21 @@ impl IoRequest {
     pub fn major(&self) -> u8 {
         self.stack_location().MajorFunction
     }
+
+    pub fn control_code(&self) -> u32 {
+        unsafe{ self.stack_location().Parameters.DeviceIoControl.IoControlCode }
+    }
+
+    pub fn input_buffer_length(&self) -> u32 {
+        unsafe{ self.stack_location().Parameters.DeviceIoControl.InputBufferLength }
+    }
+
+    pub fn output_buffer_length(&self) -> u32 {
+        unsafe{ self.stack_location().Parameters.DeviceIoControl.OutputBufferLength }
+    }
+
+    pub fn system_buffer(&self) -> *mut c_void {
+        unsafe{ (*self.raw).AssociatedIrp.SystemBuffer }
+    }
+
 }
