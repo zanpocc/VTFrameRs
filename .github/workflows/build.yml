@@ -1,11 +1,11 @@
+name: Build
+
 on:
   push:
   pull_request:
   merge_group:
   schedule: # Trigger a job on default branch at 4AM PST everyday
     - cron: "0 11 * * *"
-
-name: Build
 
 env:
   RUSTFLAGS: -D warnings
@@ -43,6 +43,8 @@ jobs:
           if (!(winget list --exact --source winget --id ${{ matrix.wdk }})[-1].contains("${{ matrix.wdk }}")) {
             winget install --disable-interactivity --source winget --exact --id ${{ matrix.wdk }}
           }
+          # Add a print statement to verify installation
+          winget list --source winget
 
       - name: Install Rust Toolchain (${{ matrix.rust_toolchain }})
         uses: dtolnay/rust-toolchain@master
