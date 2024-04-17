@@ -11,17 +11,16 @@ use buffer::CircularLogBuffer;
 use wdk_sys::ntddk::DbgPrint;
 
 
-static mut C:Option<CircularLogBuffer> = Option::None;
+static mut C:*mut CircularLogBuffer = core::ptr::null_mut();
 
-pub fn get_logger() -> &'static mut CircularLogBuffer {
-    match unsafe { &C } {
-        None => {
-            unsafe { C = Some(CircularLogBuffer::new()); }
-        },
-        Some(_) => {},
+pub fn get_logger() -> *mut CircularLogBuffer {
+    unsafe{
+        if C.is_null(){
+            C = &mut CircularLogBuffer::new() as _;
+        }
+
+        C       
     }
-    
-    unsafe { C.as_mut().unwrap() }
 }
 
 #[doc(hidden)]
