@@ -42,6 +42,8 @@ jobs:
         run: |
           if (!(winget list --exact --source winget --id ${{ matrix.wdk }})[-1].contains("${{ matrix.wdk }}")) {
             winget install --disable-interactivity --source winget --exact --id ${{ matrix.wdk }}
+          } else {
+            winget list
           }
 
       - name: Install Rust Toolchain (${{ matrix.rust_toolchain }})
