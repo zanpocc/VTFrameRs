@@ -1,11 +1,9 @@
 use core::ffi::{c_char, c_void};
 
 use wdk::println;
-use wdk_sys::{ntddk::{KeGetCurrentIrql, ZwClose, ZwCreateFile, ZwWriteFile}, FILE_APPEND_DATA, FILE_ATTRIBUTE_NORMAL, FILE_OPEN_IF, FILE_SHARE_READ, FILE_SHARE_VALID_FLAGS, FILE_SYNCHRONOUS_IO_NONALERT, IO_STATUS_BLOCK, NT_SUCCESS, OBJECT_ATTRIBUTES, OBJ_CASE_INSENSITIVE, OBJ_KERNEL_HANDLE, SYNCHRONIZE};
+use wdk_sys::{ntddk::{KeGetCurrentIrql, ZwClose, ZwCreateFile, ZwWriteFile}, FILE_APPEND_DATA, FILE_ATTRIBUTE_NORMAL, FILE_OPEN_IF, FILE_SHARE_READ, FILE_SYNCHRONOUS_IO_NONALERT, IO_STATUS_BLOCK, NT_SUCCESS, OBJECT_ATTRIBUTES, OBJ_CASE_INSENSITIVE, OBJ_KERNEL_HANDLE, SYNCHRONIZE};
 
 use crate::string::str_to_unicode_string;
-
-
 
 pub struct File {
     file_handle: *mut c_void,

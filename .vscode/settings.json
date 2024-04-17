@@ -1,19 +1,10 @@
 {
     "rust-analyzer.linkedProjects": [
         ".\\Cargo.toml",
-        ".\\Cargo.toml",
-        ".\\Cargo.toml",
-        ".\\Cargo.toml",
-        ".\\Cargo.toml",
-        ".\\Cargo.toml",
-        ".\\Cargo.toml",
-        ".\\Cargo.toml",
-        ".\\Cargo.toml",
-        ".\\Cargo.toml",
         ".\\dependencies\\moon-driver-utils\\Cargo.toml",
-        ".\\dependencies\\moon-driver-utils\\Cargo.toml",
-        ".\\dependencies\\moon-driver-utils\\Cargo.toml",
-        ".\\dependencies\\moon-driver-utils\\Cargo.toml",
-        ".\\Cargo.toml"
+        ".\\dependencies\\moon-feature\\Cargo.toml",
+        ".\\dependencies\\moon-instructions\\Cargo.toml",
+        ".\\dependencies\\moon-log\\Cargo.toml",
+        ".\\dependencies\\moon-struct\\Cargo.toml",
     ]
 }
