@@ -5,8 +5,10 @@
 
 [Version]
 Signature   = "$WINDOWS NT$"
-Class       = Sample
-ClassGuid   = {78A1C341-4539-11d3-B88D-00C04FAD5171}
+; 使用你的驱动名称
+Class       = rust_driver
+; 使用VS生成GUID
+ClassGuid   = {5E47E5F6-8CEE-4EC0-B56A-18D92CD6E4D8}
 Provider    = %ProviderString%
 PnpLockDown = 1
 
@@ -39,6 +41,7 @@ HKR,,Icon,,-5
 [SampleKMDFDevice.NT$ARCH$]
 CopyFiles=Drivers_Dir
 
+; 你的驱动名称
 [Drivers_Dir]
 rust_driver.sys
 
@@ -51,11 +54,13 @@ DisplayName    = %ServiceDesc%
 ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
 StartType      = 3               ; SERVICE_DEMAND_START 
 ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+; 你的驱动名称
 ServiceBinary  = %13%\rust_driver.sys
 
 ; ================= Strings =================
 [Strings]
 SPSVCINST_ASSOCSERVICE = 0x00000002
+; 可改可不改
 ProviderString         = "TODO-Set-Provider"
 StdMfg                 = "(Standard system devices)"
 DiskId1                = "Sample KMDF Installation Disk #1"
