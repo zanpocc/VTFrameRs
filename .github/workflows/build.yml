@@ -44,10 +44,6 @@ jobs:
             winget install --disable-interactivity --source winget --exact --id ${{ matrix.wdk }}
           }
 
-      - name: Test
-        run: |
-          winget list
-
       - name: Install Rust Toolchain (${{ matrix.rust_toolchain }})
         uses: dtolnay/rust-toolchain@master
         with:
