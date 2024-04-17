@@ -5,7 +5,6 @@ pub mod event;
 
 extern crate alloc;
 
-
 use alloc::ffi::CString;
 use buffer::CircularLogBuffer;
 use wdk_sys::ntddk::DbgPrint;
@@ -19,7 +18,7 @@ pub fn get_logger() -> *mut CircularLogBuffer {
             C = &mut CircularLogBuffer::new() as _;
         }
 
-        C       
+        C
     }
 }
 
