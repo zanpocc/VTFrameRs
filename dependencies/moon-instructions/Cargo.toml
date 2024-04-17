@@ -1,0 +1,10 @@
+[package]
+name = "moon-instructions"
+version = "0.1.0"
+edition = "2021"
+
+description = "Windows Kernel Instructions"
+
+
+[dependencies]
+moon-struct={path = "../moon-struct",version = "*"}

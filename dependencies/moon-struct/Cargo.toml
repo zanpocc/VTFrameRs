@@ -1,0 +1,11 @@
+[package]
+name = "moon-struct"
+version = "0.1.0"
+edition = "2021"
+
+description = "Windows Kernel Struct offset"
+
+
+[dependencies]
+wdk = "0.2.0"
+wdk-sys = "0.2.0"

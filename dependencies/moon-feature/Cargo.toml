@@ -1,0 +1,10 @@
+[package]
+name = "moon-feature"
+version = "0.1.0"
+edition = "2021"
+
+
+[dependencies]
+moon-instructions = {path = "../moon-instructions",version = "*"}
+moon-struct = {path = "../moon-struct",version = "*"}
+moon-driver-utils = {path = "../moon-driver-utils",version = "*"}

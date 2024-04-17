@@ -1,0 +1,12 @@
+[package]
+name = "moon-log"
+version = "0.1.0"
+edition = "2021"
+
+description = "Windows Kernel Utils"
+
+
+[dependencies]
+wdk = "0.2.0"
+wdk-sys = "0.2.0"
+moon-driver-utils = {path = "../moon-driver-utils",version = "*"}
