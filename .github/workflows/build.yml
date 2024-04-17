@@ -45,6 +45,8 @@ jobs:
           }
           # Add a print statement to verify installation
           winget list --source winget
+          # Set environment variable for WDKContentRoot
+          echo "::set-env name=WDKContentRoot::C:\\Program Files (x86)\\Windows Kits\\10"
 
       - name: Install Rust Toolchain (${{ matrix.rust_toolchain }})
         uses: dtolnay/rust-toolchain@master
