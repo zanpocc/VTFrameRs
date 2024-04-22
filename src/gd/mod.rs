@@ -1,5 +1,6 @@
 pub mod gd {
-    use moon_log::info;
+    use moon_driver_utils::timer::Timer;
+    use moon_log::{buffer::CircularLogBuffer, info};
 
     use crate::{device::{device::Device, symbolic_link::SymbolicLink}, mem::mem::PageTableTansform, vmx::vmx::Vmm};
 
@@ -9,6 +10,8 @@ pub mod gd {
         pub device: Option<Device>,
         pub vmx_data: Option<Vmm>,
         pub ptt: Option<PageTableTansform>,
+        pub log: Option<CircularLogBuffer>,
+        pub time: Option<Timer>,
     }
 
     impl Drop for GD {

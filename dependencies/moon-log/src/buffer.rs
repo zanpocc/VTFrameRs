@@ -106,12 +106,14 @@ impl CircularLogBuffer {
             self.persist_to_file();
         }
         
-        let entry = unsafe { &mut *((self.buffer as u64 + self.offset) as *mut LogEntry) };
+        unsafe {
+            let entry = &mut *((self.buffer as u64 + self.offset) as *mut LogEntry);
+            println!("p:{:p}",entry);
+
+            entry.level = level;
+            entry.length = length;
         
-        entry.level = level;
-        entry.length = length;
         
-        unsafe{
             let p = &mut entry.buffer as *mut u8;
             info!("buffer p:{:X}",p as u64);
             core::ptr::copy(buff as *mut u8, p, length as _);

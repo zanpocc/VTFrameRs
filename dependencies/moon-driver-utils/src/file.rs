@@ -11,7 +11,7 @@ pub struct File {
 
 impl File {
     pub fn new(file: &str) -> Self {
-        if unsafe { KeGetCurrentIrql() } == 0 {
+        if unsafe { KeGetCurrentIrql() } != 0 {
             println!("Error IRQL to Access File");
         }
 

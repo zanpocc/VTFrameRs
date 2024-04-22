@@ -19,9 +19,9 @@ use device::{device::Device, ioctl::IoControl, symbolic_link::SymbolicLink};
 use driver::driver::Driver;
 use mem::mem::PageTableTansform;
 use moon_driver_utils::timer::Timer;
-use moon_log::{buffer::CircularLogBuffer, error, get_logger, info, println};
-use moon_struct::check_os_version;
+use moon_log::{buffer::CircularLogBuffer, error, info, println};
 
+use moon_struct::os_version::check_os_version;
 // #[cfg(not(test))]
 use wdk_alloc::WDKAllocator;
 
@@ -34,9 +34,6 @@ use wdk_sys::{DRIVER_OBJECT, IRP_MJ_MAXIMUM_FUNCTION, KDPC, NTSTATUS, PCUNICODE_
 use crate::{device::device::dispatch_device, gd::gd::GD, vmx::{check::check_vmx_cpu_support, vmx::Vmm}};
 
 static mut __GD:Option<GD> = Option::None;
-
-
-static mut T:Option<Timer> = Option::None;
 
 pub unsafe extern "C" fn timer_callback(
     _dpc: *mut KDPC,
@@ -53,7 +50,7 @@ pub unsafe extern "C" fn timer_callback(
     let log = &mut *(deferred_context as *mut CircularLogBuffer);
     log.acquire();
     // todo:can not createfile on irql 2 Dispatch_level
-    log.persist_to_file();
+    // log.persist_to_file();
     log.release();
 }
 
@@ -64,12 +61,22 @@ pub unsafe extern "system" fn driver_entry(
 ) -> NTSTATUS {
     let status = STATUS_SUCCESS;
 
-    info!("driver entry2");
+    info!("Driver entry");
 
     __GD = Some(GD::default());
 
+    // log
+    __GD.as_mut().unwrap().log = Some(CircularLogBuffer::new());
+
+    // test log
+    for i in 0..=30 {
+        __GD.as_mut().unwrap().log.as_mut().unwrap().write_log([1u8,1u8,1u8,1u8,1u8], format_args!("hello world {}",i)); 
+    }
+
     match check_os_version(){
-        Ok(_) => {}
+        Ok(os_info) => {
+            info!("{}",os_info.version_name)
+        }
         Err(e) => {
             error!("{}",e);
             __GD.take();
@@ -95,8 +102,6 @@ pub unsafe extern "system" fn driver_entry(
             return STATUS_UNSUCCESSFUL;
         }
     }
-
-    
     
     let mut driver = Driver::from_raw(driver_object);
 
@@ -115,6 +120,7 @@ pub unsafe extern "system" fn driver_entry(
                     }
                 }
 
+                // todo: too many stack used
                 gd.vmx_data = Some(Vmm::new());
                 match gd.vmx_data.as_mut().unwrap().start() {
                     Ok(_) => {}
@@ -139,15 +145,10 @@ pub unsafe extern "system" fn driver_entry(
 
     driver_object.DriverUnload = Some(driver_unload);
 
-    
-    for i in 0..=30 {
-        (*get_logger()).write_log([1u8,1u8,1u8,1u8,1u8], format_args!("hello world {}",i)); 
-    }
-
-    let mut t = Timer::new(Some(timer_callback),get_logger() as *mut CircularLogBuffer as *mut c_void);
+    // time test
+    let mut t = Timer::new(Some(timer_callback),__GD.as_mut().unwrap().log.as_mut().unwrap() as *mut CircularLogBuffer as *mut c_void);
     t.start(5000);
-
-    T = Some(t);
+    __GD.as_mut().unwrap().time = Some(t);
 
     status
 }
@@ -155,7 +156,5 @@ pub unsafe extern "system" fn driver_entry(
 pub unsafe extern "C" fn driver_unload(_driver: *mut DRIVER_OBJECT) {
     // clear resources when drvier unload
     __GD.take();
-    T.take();
-
     info!("DriverUnload Success");
 }

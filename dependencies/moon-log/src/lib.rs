@@ -6,21 +6,8 @@ pub mod event;
 extern crate alloc;
 
 use alloc::ffi::CString;
-use buffer::CircularLogBuffer;
 use wdk_sys::ntddk::DbgPrint;
 
-
-static mut C:*mut CircularLogBuffer = core::ptr::null_mut();
-
-pub fn get_logger() -> *mut CircularLogBuffer {
-    unsafe{
-        if C.is_null(){
-            C = &mut CircularLogBuffer::new() as _;
-        }
-
-        C
-    }
-}
 
 #[doc(hidden)]
 pub fn _print(args: core::fmt::Arguments) {
@@ -56,11 +43,10 @@ macro_rules! log_message {
         {
             $crate::print!("{:<5} {:<30}:{:<5} {}\n", $level, file!(), line!(), format_args!($($arg)*));
         }
-
-        #[cfg(not(debug_assertions))]
-        {
-            $crate::print!("{:<5} {}\n", $level, format_args!($($arg)*));
-        }
+        // #[cfg(not(debug_assertions))]
+        // {
+        //     $crate::print!("{:<5} {}\n", $level, format_args!($($arg)*));
+        // }
     };
 }
 

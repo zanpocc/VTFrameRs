@@ -453,8 +453,8 @@ impl Vcpu {
     }
 
     fn subvert_cpu(&mut self) {
-        // force cast
-        let phys:PHYSICAL_ADDRESS = unsafe { core::mem::transmute(&u64::MAX) };
+        let mut phys:PHYSICAL_ADDRESS = PHYSICAL_ADDRESS::default();
+        phys.QuadPart = -1;
 
         // need free it youself on drop fuction
         let vmxon = unsafe { MmAllocateContiguousMemory(PAGE_SIZE as _,phys) };
@@ -556,6 +556,7 @@ impl Vcpu {
         match self.vcpu_vmx_state {
             VcpuVmxState::VmxStateOff => {
                 // begin start vt
+                // todo: too many stack used
                 self.subvert_cpu();
             }
             VcpuVmxState::VmxStateTransition => {
