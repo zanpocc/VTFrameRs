@@ -63,7 +63,7 @@ impl CircularLogBuffer {
             let length = unsafe { strlen(&mut entry.buffer as *mut u8 as *const i8) } as u32;
             let size = (core::mem::size_of::<LogEntry>() - 1 + length as usize) as u64;
 
-            println!("p:{:X},offset:{},length:{}",&mut entry.buffer as *mut u8 as u64,i,length);
+            // println!("p:{:X},offset:{},length:{}",&mut entry.buffer as *mut u8 as u64,i,length);
 
             self.file.write(&mut  entry.buffer as *mut u8 as *mut i8,length);
 
@@ -95,7 +95,7 @@ impl CircularLogBuffer {
         let buff = buff.as_ptr();
 
         let length = unsafe { strlen(buff) } as u32;
-        info!("length:{}",length);
+        // info!("length:{}",length);
 
         let size = (core::mem::size_of::<LogEntry>() - 1 + length as usize) as u64;
 
@@ -108,14 +108,14 @@ impl CircularLogBuffer {
         
         unsafe {
             let entry = &mut *((self.buffer as u64 + self.offset) as *mut LogEntry);
-            println!("p:{:p}",entry);
+            // println!("p:{:p}",entry);
 
             entry.level = level;
             entry.length = length;
         
         
             let p = &mut entry.buffer as *mut u8;
-            info!("buffer p:{:X}",p as u64);
+            // info!("buffer p:{:X}",p as u64);
             core::ptr::copy(buff as *mut u8, p, length as _);
         }
 
@@ -124,11 +124,7 @@ impl CircularLogBuffer {
 
         self.release();
 
-        info!("offset:{}",self.offset);
-    }
-
-    pub fn print_point(&self){
-        info!("point:{:X}",self as *const CircularLogBuffer as u64);
+        // info!("offset:{}",self.offset);
     }
 }
 

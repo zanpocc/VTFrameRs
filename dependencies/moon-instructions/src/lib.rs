@@ -199,13 +199,21 @@ pub fn bit_scan_forward64(index: *mut u32,mask: u64) {
 pub fn cpuidex(eax: u32,ecx:u32) -> CPUID {
     let mut result = CPUID::default();
 
+    // !!! do not modify regist ebx anyway
     unsafe {
         asm!(
+            "push rbx",
+            "push rdx",
+
             "cpuid",
             "mov [rdi],eax",
             "mov [rdi+4],ebx",
             "mov [rdi+8],ecx",
             "mov [rdi+0xc],edx",
+
+            "pop rdx",
+            "pop rbx",
+
             in("ecx") ecx,
             in("eax") eax,
             in("rdi") &mut result,

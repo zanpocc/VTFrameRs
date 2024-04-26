@@ -1,4 +1,4 @@
-workspace = { members = [ "dependencies/moon-feature", "dependencies/moon-instructions","dependencies/moon-struct"] }
+workspace = { members = [ "dependencies/moon-feature", "dependencies/moon-instructions","dependencies/moon-struct","dependencies/moon-log","dependencies/moon-driver-utils"] }
 [package]
 name = "rust_driver"
 version = "0.1.0"
@@ -13,8 +13,6 @@ wdk-sys = "0.2.0"
 lazy_static = "1.4.0"
 
 cty = "0.2.2"
-# moon-hook = "0.1.0"
-# moon-log = "0.1.0"
 moon-struct = { path = "./dependencies/moon-struct",version = "*" }
 moon-instructions = { path = "./dependencies/moon-instructions",version = "*" }
 moon-feature = { path = "./dependencies/moon-feature",version = "*" }

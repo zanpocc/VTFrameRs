@@ -15,25 +15,28 @@ extern crate wdk_panic;
 
 use core::ffi::c_void;
 
+use alloc::boxed::Box;
 use device::{device::Device, ioctl::IoControl, symbolic_link::SymbolicLink};
 use driver::driver::Driver;
 use mem::mem::PageTableTansform;
 use moon_driver_utils::timer::Timer;
-use moon_log::{buffer::CircularLogBuffer, error, info, println};
+use moon_log::{buffer::CircularLogBuffer, error, info};
 
 use moon_struct::os_version::check_os_version;
+use wdk::println;
 // #[cfg(not(test))]
-use wdk_alloc::WDKAllocator;
+use mem::global_alloc::WDKAllocator;
+
 
 // #[cfg(not(test))]
 #[global_allocator]
 static GLOBAL_ALLOCATOR: WDKAllocator = WDKAllocator;
 
-use wdk_sys::{DRIVER_OBJECT, IRP_MJ_MAXIMUM_FUNCTION, KDPC, NTSTATUS, PCUNICODE_STRING, STATUS_SUCCESS, STATUS_UNSUCCESSFUL};
+use wdk_sys::{DRIVER_OBJECT, IRP_MJ_MAXIMUM_FUNCTION, KDPC, NTSTATUS, PCUNICODE_STRING, PDRIVER_OBJECT, STATUS_SUCCESS, STATUS_UNSUCCESSFUL};
 
 use crate::{device::device::dispatch_device, gd::gd::GD, vmx::{check::check_vmx_cpu_support, vmx::Vmm}};
 
-static mut __GD:Option<GD> = Option::None;
+static mut __GD:Option<Box<GD>> = Option::None;
 
 pub unsafe extern "C" fn timer_callback(
     _dpc: *mut KDPC,
@@ -56,14 +59,14 @@ pub unsafe extern "C" fn timer_callback(
 
 #[export_name = "DriverEntry"] // WDF expects a symbol with the name DriverEntry
 pub unsafe extern "system" fn driver_entry(
-    driver_object: &mut DRIVER_OBJECT,
+    driver_object: PDRIVER_OBJECT,
     _registry_path: PCUNICODE_STRING,
 ) -> NTSTATUS {
     let status = STATUS_SUCCESS;
 
-    info!("Driver entry");
+    info!("Driver entry:{:p}",driver_object);
 
-    __GD = Some(GD::default());
+    __GD = Some(Box::new(GD::default()));
 
     // log
     __GD.as_mut().unwrap().log = Some(CircularLogBuffer::new());
@@ -140,10 +143,10 @@ pub unsafe extern "system" fn driver_entry(
 
     // set dispatch function
     for i in 0..IRP_MJ_MAXIMUM_FUNCTION {
-        driver_object.MajorFunction[i as usize] = Some(dispatch_device);
+        (*driver_object).MajorFunction[i as usize] = Some(dispatch_device);
     }
 
-    driver_object.DriverUnload = Some(driver_unload);
+    (*driver_object).DriverUnload = Some(driver_unload);
 
     // time test
     let mut t = Timer::new(Some(timer_callback),__GD.as_mut().unwrap().log.as_mut().unwrap() as *mut CircularLogBuffer as *mut c_void);

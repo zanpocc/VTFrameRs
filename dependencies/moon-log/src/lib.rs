@@ -37,26 +37,17 @@ macro_rules! println {
 }
 
 #[macro_export]
-macro_rules! log_message {
-    ($level:expr, $($arg:tt)*) => {
-        #[cfg(debug_assertions)]
-        {
-            $crate::print!("{:<5} {:<30}:{:<5} {}\n", $level, file!(), line!(), format_args!($($arg)*));
-        }
-        // #[cfg(not(debug_assertions))]
-        // {
-        //     $crate::print!("{:<5} {}\n", $level, format_args!($($arg)*));
-        // }
-    };
-}
-
-#[macro_export]
 macro_rules! info {
     () => {
         println!("");
     };
     ($($arg:tt)*) => {
-        $crate::log_message!("Info", $($arg)*);
+        #[cfg(debug_assertions)]
+        {
+            $crate::print!("Info {:<30}:{:<5} {}\n", file!(), line!(), format_args!($($arg)*));
+        }
+
+        // $crate::log_message!("Info", $($arg)*);
     };
 }
 
@@ -71,7 +62,7 @@ macro_rules! debug {
     ($($arg:tt)*) => {
         #[cfg(debug_assertions)]
         {
-            $crate::log_message!("Debug", $($arg)*);    
+            $crate::print!("Debug {:<30}:{:<5} {}\n", file!(), line!(), format_args!($($arg)*));
         }
     };
 }
@@ -82,7 +73,10 @@ macro_rules! warn {
         println!("");
     };
     ($($arg:tt)*) => {
-        $crate::log_message!("Warn", $($arg)*);
+        #[cfg(debug_assertions)]
+        {
+            $crate::print!("Warn {:<30}:{:<5} {}\n", file!(), line!(), format_args!($($arg)*));
+        }
     };
 }
 
@@ -92,7 +86,10 @@ macro_rules! error {
         println!("");
     };
     ($($arg:tt)*) => {
-        $crate::log_message!("Error", $($arg)*);
+        #[cfg(debug_assertions)]
+        {
+            $crate::print!("Error {:<30}:{:<5} {}\n", file!(), line!(), format_args!($($arg)*));
+        }
     };
 }
 

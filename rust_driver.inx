@@ -18,6 +18,7 @@ DefaultDestDir = 13
 [SourceDisksNames]
 1 = %DiskId1%,,,""
 
+; 你的驱动名称
 [SourceDisksFiles]
 rust_driver.sys = 1,,
 

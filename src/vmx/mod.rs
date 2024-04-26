@@ -218,7 +218,6 @@ pub mod ins {
                 return VM_INSTRUCTION_ERROR_MAP[error_code as usize];
             },
             _ => {
-                error!("error to read vmlaunch error code");
                 return "error to read vmlaunch error code";
             }
         }

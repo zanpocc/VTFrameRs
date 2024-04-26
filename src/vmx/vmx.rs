@@ -1,12 +1,12 @@
 use core::{ffi::c_void, mem::size_of, ptr::null_mut};
 
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 use moon_driver_utils::bitfield::{create_end_mask, get_bits_value, set_bits_value};
 use moon_feature::in_vmware;
 use moon_instructions::{read_msr, segment_limit, write_cr0, write_cr4};
 use moon_log::{error, info};
 use moon_struct::{inner::{GdtEntry64, GDTENTRY64_ACCESS_RIGHTS, KGDTENTRY64, KPROCESSOR_STATE}, msr::{self, ia32_vmx_ept_vpid_cap_msr, msr_index::{MSR_IA32_VMX_BASIC, MSR_IA32_VMX_EPT_VPID_CAP, MSR_IA32_VMX_PROCBASED_CTLS, MSR_IA32_VMX_PROCBASED_CTLS2, MSR_IA32_VMX_TRUE_PROCBASED_CTLS}}};
-use wdk_sys::{ntddk::{KeQueryActiveProcessorCount, KeRevertToUserAffinityThread, KeSetSystemAffinityThread, MmAllocateContiguousMemory, MmFreeContiguousMemory, MmGetPhysicalAddress, RtlCaptureContext, RtlInitializeBitMap, RtlSetBit}, CONTEXT, KERNEL_STACK_SIZE, PAGE_READWRITE, PHYSICAL_ADDRESS, RTL_BITMAP, USHORT, _LARGE_INTEGER};
+use wdk_sys::{ntddk::{KeQueryActiveProcessorCount, KeRevertToUserAffinityThread, KeSetSystemAffinityThread, MmAllocateContiguousMemory, MmFreeContiguousMemory, MmGetPhysicalAddress, RtlCaptureContext, RtlInitializeBitMap, RtlSetBit}, KERNEL_STACK_SIZE, PAGE_READWRITE, PHYSICAL_ADDRESS, RTL_BITMAP, USHORT, _LARGE_INTEGER};
 
 use crate::{inner::{KeSaveStateForHibernate, RtlRestoreContext}, utils::utils::{ get_current_processor_idx, protect_non_paged_memory}, vmx::{data::vmcs_encoding::{CR0_GUEST_HOST_MASK, HOST_FS_BASE, HOST_GS_BASE, HOST_TR_BASE}, ins::{__vmx_on, __vmx_read_error, __vmx_vmclear, __vmx_vmlaunch, __vmx_vmptrld}}, __GD};
 
@@ -25,7 +25,7 @@ struct VmcsResources {
 
 pub struct Vcpu {
     cpu_index: usize,
-    host_state: KPROCESSOR_STATE,
+    host_state: Box<KPROCESSOR_STATE>,
     vcpu_vmx_state: VcpuVmxState,
     vm_resources: VmcsResources,
     vmxon: bool,
@@ -35,7 +35,7 @@ pub struct Vmm {
     pub cpu_count: u32,
     pub vmx_features: VMXFeatures,
     pub ept_state: Option<EptState>,
-    pub vcpu: Vec<Vcpu>,
+    pub vcpu: Vec<Box<Vcpu>>,
 }
 
 impl Vcpu {
@@ -500,10 +500,10 @@ impl Vcpu {
 
         // zero memory
         unsafe{
-            vmxon.write_bytes(0, size_of::<VmxVmcs>());
-            vmcs.write_bytes(0, size_of::<VmxVmcs>());
-            vmm_stack.write_bytes(0, KERNEL_STACK_SIZE as _);
-            msr_bitmap.write_bytes(0, PAGE_SIZE as _);
+            core::ptr::write_bytes(vmxon, 0, size_of::<VmxVmcs>());
+            core::ptr::write_bytes(vmcs, 0, size_of::<VmxVmcs>());
+            core::ptr::write_bytes(vmm_stack, 0, KERNEL_STACK_SIZE as _);
+            core::ptr::write_bytes(msr_bitmap, 0, PAGE_SIZE as _);
         }
 
         // enter vmx root
@@ -543,20 +543,18 @@ impl Vcpu {
     }
 
     fn start_vt(&mut self) {
-        let host_state: &mut KPROCESSOR_STATE = &mut self.host_state;
-        let host_state_ptr: *mut KPROCESSOR_STATE = host_state;
-        let context_frame_ptr: *mut CONTEXT = &mut host_state.Context_frame;
+        unsafe{ 
+            let host_state: &mut KPROCESSOR_STATE = &mut self.host_state;
+            KeSaveStateForHibernate(host_state as _); 
 
-        unsafe{ KeSaveStateForHibernate(host_state_ptr); }
-
-        // important!!!!
-        // continue on next code after execute vmx_on instruction
-        unsafe { RtlCaptureContext(context_frame_ptr); }
+            // important!!!!
+            // continue on next code after execute vmx_on instruction
+            RtlCaptureContext(&mut host_state.Context_frame as _);
+        }
 
         match self.vcpu_vmx_state {
             VcpuVmxState::VmxStateOff => {
                 // begin start vt
-                // todo: too many stack used
                 self.subvert_cpu();
             }
             VcpuVmxState::VmxStateTransition => {
@@ -595,11 +593,11 @@ impl Vmm {
 
         info!("cpu_count:{}", cpu_count);
 
-        let mut vcpus: Vec<Vcpu> = Vec::with_capacity(cpu_count as _);
+        let mut vcpus: Vec<Box<Vcpu>> = Vec::with_capacity(cpu_count as _);
 
         for _ in 0..cpu_count {
             let vcpu = Vcpu {
-                host_state: KPROCESSOR_STATE::default(),
+                host_state: Box::new(KPROCESSOR_STATE::default()),
                 vcpu_vmx_state: VcpuVmxState::VmxStateOff,
                 vm_resources: VmcsResources { 
                     vmxon: core::ptr::null_mut(),
@@ -610,7 +608,8 @@ impl Vmm {
                 vmxon: false,
                 cpu_index: 0,
             };
-            vcpus.push(vcpu);
+            let v = Box::new(vcpu);
+            vcpus.push(v);
         }
 
         Self {

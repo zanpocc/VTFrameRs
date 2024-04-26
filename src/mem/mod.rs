@@ -1,3 +1,5 @@
+pub mod global_alloc;
+
 pub mod mem {
     use cty::c_void;
     use moon_instructions::read_cr3;

@@ -139,6 +139,8 @@ const VERSION_MAP: [OSVersionInfo;20] = [
 
 
 pub fn check_os_version() -> Result<&'static OSVersionInfo, &'static str> {
+    // todo:use RtlVerifyVersionInfo
+
     // check system version
     let mut os_version = RTL_OSVERSIONINFOW {
         dwOSVersionInfoSize: 0,
