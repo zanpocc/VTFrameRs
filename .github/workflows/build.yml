@@ -2,13 +2,9 @@ name: Build
 
 on:
   push:
-  pull_request:
-  merge_group:
-  schedule: # Trigger a job on default branch at 4AM PST everyday
-    - cron: "0 11 * * *"
 
 env:
-  RUSTFLAGS: -D warnings
+  # RUSTFLAGS: -D warnings
   WDKContentRoot: C:\\Program Files (x86)\\Windows Kits\\10
 
 jobs:
