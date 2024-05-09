@@ -11,6 +11,7 @@ pub mod file;
 pub mod timer;
 pub mod mutex;
 pub mod spinlock;
+pub mod os_version;
 
 pub fn init_obj_attr(oa: &mut OBJECT_ATTRIBUTES,name: &str) {
     oa.ObjectName = &mut str_to_unicode_string(name);

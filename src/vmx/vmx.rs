@@ -238,7 +238,7 @@ impl Vcpu {
         let mut vm_enter_ctl_requested:u32 = 0;
         let mut vm_exit_ctl_requested:u32 = 0;
 
-        let vmx_feature =  unsafe { &__GD.as_mut().unwrap().vmx_data.as_mut().unwrap().vmx_features } ;
+        let vmx_feature =  unsafe { &__GD.as_mut().unwrap().vmm.as_mut().unwrap().vmx_features } ;
 
         // fixed bit
         let mut vmx_pin: u64 = read_msr(msr::msr_index::MSR_IA32_VMX_PINBASED_CTLS);
@@ -264,7 +264,7 @@ impl Vcpu {
 
             // ept
             if vmx_feature.ept {
-                let vmx_data = unsafe { __GD.as_mut().unwrap().vmx_data.as_mut().unwrap() };
+                let vmx_data = unsafe { __GD.as_mut().unwrap().vmm.as_mut().unwrap() };
                 vm_cpu_ctl2_requested |= vmx_secondary_cpu_based_controls::VMX_PROC_CTLS2_EPT;
 
                 if vmx_feature.vpid {

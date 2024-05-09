@@ -73,6 +73,7 @@ const VERSION_MAP: [OSVersionInfo;20] = [
         build_number: 18950,
         version_name: "Windows 10 Version 20H1",
     },
+    // ExAllocatePool2 support lowest version
     OSVersionInfo {
         major_version: 10,
         minor_version: 0,

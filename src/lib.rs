@@ -22,8 +22,7 @@ use mem::mem::PageTableTansform;
 use moon_driver_utils::timer::Timer;
 use moon_log::{buffer::CircularLogBuffer, error, info};
 
-use moon_struct::os_version::check_os_version;
-use wdk::println;
+use moon_driver_utils::os_version::check_os_version;
 // #[cfg(not(test))]
 use mem::global_alloc::WDKAllocator;
 
@@ -38,24 +37,24 @@ use crate::{device::device::dispatch_device, gd::gd::GD, vmx::{check::check_vmx_
 
 static mut __GD:Option<Box<GD>> = Option::None;
 
-pub unsafe extern "C" fn timer_callback(
-    _dpc: *mut KDPC,
-    deferred_context: *mut c_void,
-    _system_argument1: *mut c_void,
-    _system_argument2: *mut c_void) {
+// pub unsafe extern "C" fn timer_callback(
+//     _dpc: *mut KDPC,
+//     deferred_context: *mut c_void,
+//     _system_argument1: *mut c_void,
+//     _system_argument2: *mut c_void) {
 
-    println!("timer_callback");
+//     println!("timer_callback");
 
-    if deferred_context.is_null(){
-        return;
-    }
+//     if deferred_context.is_null(){
+//         return;
+//     }
 
-    let log = &mut *(deferred_context as *mut CircularLogBuffer);
-    log.acquire();
-    // todo:can not createfile on irql 2 Dispatch_level
-    // log.persist_to_file();
-    log.release();
-}
+//     let log = &mut *(deferred_context as *mut CircularLogBuffer);
+//     log.acquire();
+//     // todo:can not createfile on irql 2 Dispatch_level
+//     // log.persist_to_file();
+//     log.release();
+// }
 
 #[export_name = "DriverEntry"] // WDF expects a symbol with the name DriverEntry
 pub unsafe extern "system" fn driver_entry(
@@ -68,13 +67,13 @@ pub unsafe extern "system" fn driver_entry(
 
     __GD = Some(Box::new(GD::default()));
 
-    // log
-    __GD.as_mut().unwrap().log = Some(CircularLogBuffer::new());
+    // // log
+    // __GD.as_mut().unwrap().log = Some(CircularLogBuffer::new());
 
-    // test log
-    for i in 0..=30 {
-        __GD.as_mut().unwrap().log.as_mut().unwrap().write_log([1u8,1u8,1u8,1u8,1u8], format_args!("hello world {}",i)); 
-    }
+    // // test log
+    // for i in 0..=30 {
+    //     __GD.as_mut().unwrap().log.as_mut().unwrap().write_log([1u8,1u8,1u8,1u8,1u8], format_args!("hello world {}",i)); 
+    // }
 
     match check_os_version(){
         Ok(os_info) => {
@@ -123,9 +122,8 @@ pub unsafe extern "system" fn driver_entry(
                     }
                 }
 
-                // todo: too many stack used
-                gd.vmx_data = Some(Vmm::new());
-                match gd.vmx_data.as_mut().unwrap().start() {
+                gd.vmm = Some(Vmm::new());
+                match gd.vmm.as_mut().unwrap().start() {
                     Ok(_) => {}
                     Err(_) => {
                         __GD.take();
@@ -148,10 +146,10 @@ pub unsafe extern "system" fn driver_entry(
 
     (*driver_object).DriverUnload = Some(driver_unload);
 
-    // time test
-    let mut t = Timer::new(Some(timer_callback),__GD.as_mut().unwrap().log.as_mut().unwrap() as *mut CircularLogBuffer as *mut c_void);
-    t.start(5000);
-    __GD.as_mut().unwrap().time = Some(t);
+    // // time test
+    // let mut t = Timer::new(Some(timer_callback),__GD.as_mut().unwrap().log.as_mut().unwrap() as *mut CircularLogBuffer as *mut c_void);
+    // t.start(5000);
+    // __GD.as_mut().unwrap().time = Some(t);
 
     status
 }

@@ -8,7 +8,7 @@ pub mod gd {
     pub struct GD {
         pub symbolic_link: Option<SymbolicLink>,
         pub device: Option<Device>,
-        pub vmx_data: Option<Vmm>,
+        pub vmm: Option<Vmm>,
         pub ptt: Option<PageTableTansform>,
         pub log: Option<CircularLogBuffer>,
         pub time: Option<Timer>,
@@ -19,15 +19,4 @@ pub mod gd {
             info!("Start drop GD");
         }
     }
-
-    // impl GD {
-    //     pub fn new() -> Self {
-    //         Self { 
-    //             device: Option::None,
-    //             symbolic_link: Option::None,
-    //             vmx_data: Option::None,
-    //             ptt: Option::None,
-    //         }
-    //     }
-    // }
 }

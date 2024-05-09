@@ -281,7 +281,7 @@ fn vm_exit_msr_write(guest_state: &mut GuestState) {
             write_msr(ecx as _, unsafe{ msr_value.QuadPart } as _);
         }
         _ => {
-            if unsafe { __GD.as_mut().unwrap().vmx_data.as_mut().unwrap().vmx_features.in_vmware } {
+            if unsafe { __GD.as_mut().unwrap().vmm.as_mut().unwrap().vmx_features.in_vmware } {
                 write_msr(ecx, unsafe{ msr_value.QuadPart } as _);
             } else {
                 if ecx >= msr::msr_index::MSR_RESERVED_MIN && ecx <= msr::msr_index::MSR_RESERVED_MAX {
