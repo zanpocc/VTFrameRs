@@ -64,7 +64,7 @@ pub unsafe extern "system" fn driver_entry(
 ) -> NTSTATUS {
     let status = STATUS_SUCCESS;
 
-    info!("Driver entry:{:p}",driver_object);
+    info!("Driver entry");
 
     __GD = Some(Box::new(GD::default()));
 
