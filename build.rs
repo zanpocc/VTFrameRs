@@ -1,9 +1,11 @@
 // Copyright (c) Microsoft Corporation
 // License: MIT OR Apache-2.0
 
+use std::env;
 use std::fs::OpenOptions;
 
 use std::io::Write;
+use std::path::{Path, PathBuf};
 
 fn p(s: String){
     let mut file = OpenOptions::new()
@@ -16,9 +18,7 @@ fn p(s: String){
 }
 
 fn main() -> Result<(), wdk_build::ConfigError> {
-
-    p(format!("This is a debug message from build.rs"));
-
+    // replace to wdm driver
     let wdk_sys_crate_dep_key =
         format!("DEP_WDK_{}", "wdk_config".to_ascii_uppercase());
     let wdk_crate_dep_key = format!(
@@ -44,6 +44,14 @@ fn main() -> Result<(), wdk_build::ConfigError> {
         }
         Err(_) =>{}
     }
+
+    // other c/c++ library dependences
+    let root = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap());
+    
+    println!("cargo:rustc-link-search=native={}", Path::new(&root).join("lib").display());
+    println!("cargo::rustc-link-lib=distorm35");
+
+    p(format!("root:{:?}",Path::new(&root).join("lib").display()));
 
     wdk_build::Config::from_env_auto()?.configure_binary_build();
     Ok(())

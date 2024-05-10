@@ -7,6 +7,7 @@ pub mod utils;
 pub mod gd;
 pub mod inner;
 pub mod mem;
+pub mod slib;
 
 extern crate alloc;
 
@@ -20,6 +21,7 @@ use device::{device::Device, ioctl::IoControl, symbolic_link::SymbolicLink};
 use driver::driver::Driver;
 use mem::mem::PageTableTansform;
 use moon_driver_utils::timer::Timer;
+use moon_hook::inline_hook;
 use moon_log::{buffer::CircularLogBuffer, error, info};
 
 use moon_driver_utils::os_version::check_os_version;
@@ -33,7 +35,7 @@ static GLOBAL_ALLOCATOR: WDKAllocator = WDKAllocator;
 
 use wdk_sys::{DRIVER_OBJECT, IRP_MJ_MAXIMUM_FUNCTION, KDPC, NTSTATUS, PCUNICODE_STRING, PDRIVER_OBJECT, STATUS_SUCCESS, STATUS_UNSUCCESSFUL};
 
-use crate::{device::device::dispatch_device, gd::gd::GD, vmx::{check::check_vmx_cpu_support, vmx::Vmm}};
+use crate::{device::device::dispatch_device, gd::gd::GD, slib::distorm35::TestDistorm, vmx::{check::check_vmx_cpu_support, vmx::Vmm}};
 
 static mut __GD:Option<Box<GD>> = Option::None;
 
@@ -55,6 +57,12 @@ static mut __GD:Option<Box<GD>> = Option::None;
 //     // log.persist_to_file();
 //     log.release();
 // }
+
+
+pub unsafe extern "C" fn test_hook() {
+    info!("Test Hook");
+}
+
 
 #[export_name = "DriverEntry"] // WDF expects a symbol with the name DriverEntry
 pub unsafe extern "system" fn driver_entry(
@@ -150,6 +158,11 @@ pub unsafe extern "system" fn driver_entry(
     // let mut t = Timer::new(Some(timer_callback),__GD.as_mut().unwrap().log.as_mut().unwrap() as *mut CircularLogBuffer as *mut c_void);
     // t.start(5000);
     // __GD.as_mut().unwrap().time = Some(t);
+
+    // info!("unload:{:p}",test_hook);
+    // inline_hook::inline_hook(test_hook as _,test_hook as _);
+
+    TestDistorm();
 
     status
 }

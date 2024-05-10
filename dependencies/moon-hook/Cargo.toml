@@ -1,0 +1,17 @@
+[package]
+name = "moon-hook"
+version = "0.1.0"
+edition = "2021"
+
+description = "Windows Kernel Hook"
+
+[dependencies]
+wdk = "0.2.0"
+wdk-sys = "0.2.0"
+moon-driver-utils = {path = "../moon-driver-utils",version = "*"}
+
+[dependencies.iced-x86]
+version = "1.21.0"
+default-features = false
+# See below for all features
+features = ["no_std", "decoder", "block_encoder", "instr_info", "nasm"]
