@@ -7,24 +7,27 @@ pub mod utils;
 pub mod gd;
 pub mod inner;
 pub mod mem;
+pub mod hook;
 pub mod slib;
+pub mod symbol;
 
 extern crate alloc;
 
 // #[cfg(not(test))]
 extern crate wdk_panic;
 
-use core::ffi::c_void;
+#[macro_use]
+extern crate lazy_static;
+
 
 use alloc::boxed::Box;
 use device::{device::Device, ioctl::IoControl, symbolic_link::SymbolicLink};
 use driver::driver::Driver;
+use hook::inline_hook::InlineHook;
 use mem::mem::PageTableTansform;
-use moon_driver_utils::timer::Timer;
-use moon_hook::inline_hook;
-use moon_log::{buffer::CircularLogBuffer, error, info};
+use moon_driver_utils::memory::{wpoff, wpon};
+use moon_log::{error, info};
 
-use moon_driver_utils::os_version::check_os_version;
 // #[cfg(not(test))]
 use mem::global_alloc::WDKAllocator;
 
@@ -33,9 +36,9 @@ use mem::global_alloc::WDKAllocator;
 #[global_allocator]
 static GLOBAL_ALLOCATOR: WDKAllocator = WDKAllocator;
 
-use wdk_sys::{DRIVER_OBJECT, IRP_MJ_MAXIMUM_FUNCTION, KDPC, NTSTATUS, PCUNICODE_STRING, PDRIVER_OBJECT, STATUS_SUCCESS, STATUS_UNSUCCESSFUL};
+use wdk_sys::{ntddk::memcpy, ACCESS_MASK, DRIVER_OBJECT, IRP_MJ_MAXIMUM_FUNCTION, NTSTATUS, PCLIENT_ID, PCUNICODE_STRING, PDRIVER_OBJECT, PHANDLE64, POBJECT_ATTRIBUTES, STATUS_SUCCESS, STATUS_UNSUCCESSFUL};
 
-use crate::{device::device::dispatch_device, gd::gd::GD, slib::distorm35::TestDistorm, vmx::{check::check_vmx_cpu_support, vmx::Vmm}};
+use crate::{device::device::dispatch_device, gd::gd::GD, hook::inline_hook::inline_hook, symbol::{generic::OS_INFO, symbol::get_ssdt_function_by_name}, vmx::{check::check_vmx_cpu_support, vmx::Vmm}};
 
 static mut __GD:Option<Box<GD>> = Option::None;
 
@@ -58,9 +61,25 @@ static mut __GD:Option<Box<GD>> = Option::None;
 //     log.release();
 // }
 
+type NtOpenProcessFn = unsafe extern "system" fn(
+    ProcessHandle: PHANDLE64,
+    DesiredAccess: ACCESS_MASK,
+    ObjectAttributes: POBJECT_ATTRIBUTES,
+    ClientId: PCLIENT_ID,
+) -> NTSTATUS;
 
-pub unsafe extern "C" fn test_hook() {
-    info!("Test Hook");
+static mut NEW_OLD_NT_OPEN_PROCESS:Option<InlineHook> = Option::None;
+
+pub unsafe fn my_nt_open_process(process_handle: PHANDLE64,desired_access: ACCESS_MASK,object_attributes: POBJECT_ATTRIBUTES ,client_id: PCLIENT_ID) -> NTSTATUS {
+    info!("hello ntopenprocess");
+
+    if let Some(hook) = &NEW_OLD_NT_OPEN_PROCESS {
+        let nt_open_process: NtOpenProcessFn = core::mem::transmute(hook.new_ori_func_header);
+        return nt_open_process(process_handle, desired_access, object_attributes, client_id);
+    }
+
+    // Return an error code if the function pointer is not set
+    STATUS_UNSUCCESSFUL
 }
 
 
@@ -73,26 +92,29 @@ pub unsafe extern "system" fn driver_entry(
 
     info!("Driver entry");
 
-    __GD = Some(Box::new(GD::default()));
+    let nt_open_process = get_ssdt_function_by_name("NtOpenProcess");
+    info!("NtOpenProcess:{:p}",nt_open_process);
 
-    // // log
-    // __GD.as_mut().unwrap().log = Some(CircularLogBuffer::new());
+    let hook = inline_hook(nt_open_process as _, my_nt_open_process as _);
+    match hook {
+        Ok(h) => {
+            let patch_size = h.patch_size.clone();
+            let patch_header = h.patch_header.clone();
 
-    // // test log
-    // for i in 0..=30 {
-    //     __GD.as_mut().unwrap().log.as_mut().unwrap().write_log([1u8,1u8,1u8,1u8,1u8], format_args!("hello world {}",i)); 
-    // }
+            NEW_OLD_NT_OPEN_PROCESS = Some(h);
 
-    match check_os_version(){
-        Ok(os_info) => {
-            info!("{}",os_info.version_name)
+            let irql = wpoff();
+            memcpy(nt_open_process as _,patch_header as _, patch_size as _);
+            wpon(irql);
         }
-        Err(e) => {
-            error!("{}",e);
-            __GD.take();
-            return STATUS_UNSUCCESSFUL;
+        Err(_) => {
+            info!("hook错误");
         }
     }
+
+    __GD = Some(Box::new(GD::default()));
+
+    info!("{}",OS_INFO.version_name);
 
     match check_vmx_cpu_support() {
         Ok(_) => {}
@@ -154,15 +176,7 @@ pub unsafe extern "system" fn driver_entry(
 
     (*driver_object).DriverUnload = Some(driver_unload);
 
-    // // time test
-    // let mut t = Timer::new(Some(timer_callback),__GD.as_mut().unwrap().log.as_mut().unwrap() as *mut CircularLogBuffer as *mut c_void);
-    // t.start(5000);
-    // __GD.as_mut().unwrap().time = Some(t);
-
-    // info!("unload:{:p}",test_hook);
-    // inline_hook::inline_hook(test_hook as _,test_hook as _);
-
-    TestDistorm();
+    
 
     status
 }

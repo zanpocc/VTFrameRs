@@ -252,15 +252,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "iced-x86"
-version = "1.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c447cff8c7f384a7d4f741cfcff32f75f3ad02b406432e8d6c878d56b1edf6b"
-dependencies = [
- "lazy_static",
-]
-
-[[package]]
 name = "itertools"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -343,6 +334,7 @@ checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 name = "moon-driver-utils"
 version = "0.1.0"
 dependencies = [
+ "lazy_static",
  "moon-instructions",
  "moon-struct",
  "wdk",
@@ -356,16 +348,6 @@ dependencies = [
  "moon-driver-utils",
  "moon-instructions",
  "moon-struct",
-]
-
-[[package]]
-name = "moon-hook"
-version = "0.1.0"
-dependencies = [
- "iced-x86",
- "moon-driver-utils",
- "wdk",
- "wdk-sys",
 ]
 
 [[package]]
@@ -510,7 +492,6 @@ dependencies = [
  "lazy_static",
  "moon-driver-utils",
  "moon-feature",
- "moon-hook",
  "moon-instructions",
  "moon-log",
  "moon-struct",

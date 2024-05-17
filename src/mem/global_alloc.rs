@@ -37,9 +37,7 @@
 use core::alloc::{GlobalAlloc, Layout};
 
 use wdk_sys::{
-    ntddk::{ExAllocatePool, ExFreePool},
-    SIZE_T,
-    _POOL_TYPE::NonPagedPool,
+    ntddk::{ExAllocatePool, ExFreePool}, SIZE_T, _POOL_TYPE::NonPagedPoolExecute
 };
 
 /// Allocator implementation to use with `#[global_allocator]` to allow use of
@@ -60,7 +58,7 @@ unsafe impl GlobalAlloc for WDKAllocator {
         let ptr =
             // SAFETY: `ExAllocatePool2` is safe to call from any `IRQL` <= `DISPATCH_LEVEL` since its allocating from `POOL_FLAG_NON_PAGED`
             unsafe {
-                ExAllocatePool(NonPagedPool, layout.size() as SIZE_T)
+                ExAllocatePool(NonPagedPoolExecute, layout.size() as SIZE_T)
             };
         if ptr.is_null() {
             return core::ptr::null_mut();

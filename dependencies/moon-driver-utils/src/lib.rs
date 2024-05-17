@@ -13,6 +13,9 @@ pub mod mutex;
 pub mod spinlock;
 pub mod os_version;
 
+#[macro_use]
+extern crate lazy_static;
+
 pub fn init_obj_attr(oa: &mut OBJECT_ATTRIBUTES,name: &str) {
     oa.ObjectName = &mut str_to_unicode_string(name);
     oa.Attributes = OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE;
