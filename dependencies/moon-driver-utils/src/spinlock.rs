@@ -13,16 +13,6 @@ impl SpinLock {
     }
 
     pub fn acquire(&self) -> bool {
-        // let r = self.lock.compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed);
-        // match r {
-        //     Ok(_) => {
-        //         return true;
-        //     }
-        //     Err(_) => {
-        //         return false;
-        //     }
-        // }
-
         while self.lock.compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed).is_err() {}
         true
     }

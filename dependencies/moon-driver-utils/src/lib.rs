@@ -11,7 +11,10 @@ pub mod file;
 pub mod timer;
 pub mod mutex;
 pub mod spinlock;
+pub mod rwlock;
 pub mod os_version;
+pub mod thread;
+
 
 #[macro_use]
 extern crate lazy_static;

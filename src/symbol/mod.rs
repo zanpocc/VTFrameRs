@@ -5,7 +5,7 @@ pub mod symbol {
     use alloc::ffi::CString;
     use moon_driver_utils::string::{cstr_to_rust_str, str_to_unicode_string};
     use moon_instructions::read_msr;
-    use moon_struct::pe::{ImageDosHeader, ImageExportDirectory, ImageFileHeader, ImageOptionalHeader64};
+    use moon_struct::{msr::msr_index::MSR_LSTAR, pe::{ImageDosHeader, ImageExportDirectory, ImageFileHeader, ImageOptionalHeader64}};
     use wdk_sys::{ntddk::{memcpy, strcmp, IoGetCurrentProcess, KeStackAttachProcess, KeUnstackDetachProcess, MmIsAddressValid, PsLookupProcessByProcessId, RtlCompareUnicodeString}, KAPC_STATE, LIST_ENTRY64, NT_SUCCESS, PEPROCESS, UCHAR, _KPROCESS};
 
     use super::generic::OS_INFO;
@@ -24,7 +24,7 @@ pub mod symbol {
     }
 
     pub fn get_ssdt_address() -> *mut SystemServiceTable {
-        let start_search_address = read_msr(0xC0000082);
+        let start_search_address = read_msr(MSR_LSTAR);
         let end_search_address = start_search_address + 0x500;
 
         let mut p = 0u64;

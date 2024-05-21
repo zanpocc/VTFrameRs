@@ -20,13 +20,15 @@ extern crate wdk_panic;
 extern crate lazy_static;
 
 
-use alloc::boxed::Box;
+use core::arch::asm;
+
+use alloc::{boxed::Box, string::String};
 use device::{device::Device, ioctl::IoControl, symbolic_link::SymbolicLink};
 use driver::driver::Driver;
 use hook::inline_hook::InlineHook;
 use mem::mem::PageTableTansform;
-use moon_driver_utils::memory::{wpoff, wpon};
-use moon_log::{error, info};
+use moon_driver_utils::thread::{self, Thread};
+use moon_log::{error, info, println};
 
 // #[cfg(not(test))]
 use mem::global_alloc::WDKAllocator;
@@ -36,9 +38,9 @@ use mem::global_alloc::WDKAllocator;
 #[global_allocator]
 static GLOBAL_ALLOCATOR: WDKAllocator = WDKAllocator;
 
-use wdk_sys::{ntddk::memcpy, ACCESS_MASK, DRIVER_OBJECT, IRP_MJ_MAXIMUM_FUNCTION, NTSTATUS, PCLIENT_ID, PCUNICODE_STRING, PDRIVER_OBJECT, PHANDLE64, POBJECT_ATTRIBUTES, STATUS_SUCCESS, STATUS_UNSUCCESSFUL};
+use wdk_sys::{ACCESS_MASK, DRIVER_OBJECT, IRP_MJ_MAXIMUM_FUNCTION, NTSTATUS, PCLIENT_ID, PCUNICODE_STRING, PDRIVER_OBJECT, PHANDLE64, POBJECT_ATTRIBUTES, STATUS_SUCCESS, STATUS_UNSUCCESSFUL};
 
-use crate::{device::device::dispatch_device, gd::gd::GD, hook::inline_hook::inline_hook, symbol::{generic::OS_INFO, symbol::get_ssdt_function_by_name}, vmx::{check::check_vmx_cpu_support, vmx::Vmm}};
+use crate::{device::device::dispatch_device, gd::gd::GD, hook::inline_hook::{NtOpenProcessFn, HOOK_LIST}, symbol::{generic::OS_INFO, symbol::get_ssdt_function_by_name}, vmx::{check::check_vmx_cpu_support, vmx::Vmm}};
 
 static mut __GD:Option<Box<GD>> = Option::None;
 
@@ -61,19 +63,16 @@ static mut __GD:Option<Box<GD>> = Option::None;
 //     log.release();
 // }
 
-type NtOpenProcessFn = unsafe extern "system" fn(
-    ProcessHandle: PHANDLE64,
-    DesiredAccess: ACCESS_MASK,
-    ObjectAttributes: POBJECT_ATTRIBUTES,
-    ClientId: PCLIENT_ID,
-) -> NTSTATUS;
-
-static mut NEW_OLD_NT_OPEN_PROCESS:Option<InlineHook> = Option::None;
 
 pub unsafe fn my_nt_open_process(process_handle: PHANDLE64,desired_access: ACCESS_MASK,object_attributes: POBJECT_ATTRIBUTES ,client_id: PCLIENT_ID) -> NTSTATUS {
     info!("hello ntopenprocess");
+    let r = HOOK_LIST.read();
+    
+    let r = &r.as_ref();
+    let r = r.unwrap();
+    let r = r.nt_open_process.as_ref();
 
-    if let Some(hook) = &NEW_OLD_NT_OPEN_PROCESS {
+    if let Some(hook) = r {
         let nt_open_process: NtOpenProcessFn = core::mem::transmute(hook.new_ori_func_header);
         return nt_open_process(process_handle, desired_access, object_attributes, client_id);
     }
@@ -82,6 +81,17 @@ pub unsafe fn my_nt_open_process(process_handle: PHANDLE64,desired_access: ACCES
     STATUS_UNSUCCESSFUL
 }
 
+pub struct TestArgs{
+    pub age: u64,
+}
+
+pub unsafe fn my_thread (args: *mut TestArgs) {
+    let a = &*args;
+
+    println!("age:{}",a.age);
+}
+
+static mut THR:Option<Thread<TestArgs>> = Option::None;
 
 #[export_name = "DriverEntry"] // WDF expects a symbol with the name DriverEntry
 pub unsafe extern "system" fn driver_entry(
@@ -95,17 +105,25 @@ pub unsafe extern "system" fn driver_entry(
     let nt_open_process = get_ssdt_function_by_name("NtOpenProcess");
     info!("NtOpenProcess:{:p}",nt_open_process);
 
-    let hook = inline_hook(nt_open_process as _, my_nt_open_process as _);
+    let t = thread::Thread::<TestArgs>::new(my_thread, TestArgs{
+        age: 20,
+    });
+    match t {
+        Ok(mut tt) => {
+            tt.start();
+            THR = Some(tt);
+        }  
+        Err(e) => {
+            println!("{}",e);
+        }
+    }
+
+    let hook = InlineHook::inline_hook(nt_open_process as _, my_nt_open_process as _);
     match hook {
         Ok(h) => {
-            let patch_size = h.patch_size.clone();
-            let patch_header = h.patch_header.clone();
-
-            NEW_OLD_NT_OPEN_PROCESS = Some(h);
-
-            let irql = wpoff();
-            memcpy(nt_open_process as _,patch_header as _, patch_size as _);
-            wpon(irql);
+            let mut w = HOOK_LIST.write();
+            (&mut w).as_mut().unwrap().nt_open_process = Some(h);
+            (&mut w).as_mut().unwrap().nt_open_process.as_mut().unwrap().hook();
         }
         Err(_) => {
             info!("hook错误");
@@ -176,13 +194,19 @@ pub unsafe extern "system" fn driver_entry(
 
     (*driver_object).DriverUnload = Some(driver_unload);
 
-    
-
     status
 }
 
 pub unsafe extern "C" fn driver_unload(_driver: *mut DRIVER_OBJECT) {
     // clear resources when drvier unload
+    &(HOOK_LIST.write()).take();
     __GD.take();
+
+    unsafe{
+        asm!{
+            "int 3"
+        }
+    }
+    THR.take();
     info!("DriverUnload Success");
 }
