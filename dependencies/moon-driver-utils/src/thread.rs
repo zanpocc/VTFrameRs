@@ -1,115 +1,114 @@
-use core::{arch::asm, ffi::c_void};
+use core::ffi::c_void;
 
 use wdk::println;
-use wdk_sys::{ntddk::{IoCreateNotificationEvent, KeSetEvent, KeWaitForSingleObject, ObfDereferenceObject, PsCreateSystemThread, PsTerminateSystemThread, ZwClose}, HANDLE, NT_SUCCESS, PHANDLE, PKEVENT, PKSTART_ROUTINE, PVOID, THREAD_ALL_ACCESS, _KWAIT_REASON::Executive, _MODE::KernelMode};
+use wdk_sys::{ntddk::{KeSetEvent, KeWaitForSingleObject, PsCreateSystemThread, PsTerminateSystemThread}, LARGE_INTEGER, NT_SUCCESS, STATUS_SUCCESS, THREAD_ALL_ACCESS, _KWAIT_REASON::Executive, _MODE::KernelMode};
 
+use crate::{memory::pp::PP, wrap::{ethread::Ethread, event::Event, handle::Handle}};
 
-pub struct Thread<T> {
-    stop_event: PKEVENT,
-    stop_event_handle: HANDLE,
-    thread_handle: HANDLE,
+pub struct SystemThread<T> {
+    wait_start_event: Event,
+    stop_event: Event,
+    thread_exit_event: Event,
+    thread_handle: Handle,
+    thread_objet: Ethread,
     thread_fn: ThreadFn<T>,
-    thread_args: T
+    thread_args: Option<T>,
+    timer: Option<u64>,
 }
 
-type ThreadFn<T> = unsafe fn(args: *mut T);
+type ThreadFn<T> = unsafe fn(args: &mut Option<T>);
 
-impl<T> Thread<T> {
+impl<T> SystemThread<T> {
+    pub unsafe extern "C" fn thread_proc(thread: *mut SystemThread<T>) {
+        let t = &mut *thread;
 
-    pub unsafe extern "C" fn ThreadProc(thread: *mut Thread<T>) {
-        unsafe{
+        KeSetEvent(t.wait_start_event.as_mut_raw(), 0, 0);
 
-            println!("Start to thread");
-            asm!{
-                "int 3"
+        let function = &mut t.thread_fn;
+        let args = &mut t.thread_args;
+
+        if t.timer == Option::None {
+            function(args);
+        }else{
+            let mut time = LARGE_INTEGER::default();
+            time.QuadPart = -1 * 10 * 1000 * t.timer.unwrap() as i64;
+    
+            let e = t.stop_event.as_mut_raw();
+    
+            loop {
+                function(args);
+    
+                // wait exit
+                let status = KeWaitForSingleObject(e as _, Executive as _,
+                    KernelMode as _, 0, &mut time as _);
+    
+                // drop or no timer
+                if status == STATUS_SUCCESS {
+                    break;
+                }
             }
-            let t = &mut *thread;
-            (t.thread_fn)(&mut t.thread_args as _);
-            println!("Start to thread success");
-
-            println!("Start Terminate Sysetm Thread");
-            let status = PsTerminateSystemThread(0);
-            println!("Terminate Sysetm Thread Error:{}",status);
         }
+
+        KeSetEvent(t.thread_exit_event.as_mut_raw() as _, 0, 0);
+
+        let _ = PsTerminateSystemThread(0);
     }
 
-    pub fn new(thread: ThreadFn<T>,args: T) -> Result<Self,&'static str> {
-        let mut handle:HANDLE = core::ptr::null_mut();
-        unsafe{
-            let event = IoCreateNotificationEvent(core::ptr::null_mut(), &mut handle as _);
-            if event.is_null(){
-                return Err("IoCreateNotificationEvent Error");
-            }
+    pub fn as_mut_raw(&mut self) -> *mut SystemThread<T>{
+        self as *mut _
+    }
 
-            let r = Self {
-                stop_event: event,
-                stop_event_handle: handle,
-                thread_handle: core::ptr::null_mut(),
-                thread_fn: thread,
-                thread_args: args,
-            };
-            return Ok(r);
-        }
+    pub fn new(thread: ThreadFn<T>,args: Option<T>, timer: Option<u64>) -> Result<PP<Self>,&'static str> {
+        let stop_event = Event::new()?;
+        let thread_exit_event = Event::new()?;
+        let wait_start_event = Event::new()?;
+
+        let r = PP::new(Self {
+            wait_start_event,
+            stop_event,
+            thread_exit_event,
+            thread_handle: Handle::default(),
+            thread_objet: Ethread::default(),
+            thread_fn: thread,
+            thread_args: args,
+            timer
+        });
+        return Ok(r);
     }
 
     pub fn start(&mut self) -> bool {
-        unsafe{
-
+        unsafe {
             let t = core::mem::transmute::<
-                    unsafe extern "C" fn(*mut Thread<T>),
+                    unsafe extern "C" fn(*mut SystemThread<T>),
                     unsafe extern "C" fn(*mut c_void),
-                >(Self::ThreadProc as unsafe extern "C" fn(*mut Thread<T>));
+                >(Self::thread_proc);
 
-            let status = PsCreateSystemThread(&mut self.thread_handle as _, THREAD_ALL_ACCESS, 
+            
+            let status = PsCreateSystemThread(&mut self.thread_handle as *mut _ as _, THREAD_ALL_ACCESS, 
                 core::ptr::null_mut(), core::ptr::null_mut(), core::ptr::null_mut(), 
-                Some(t), self as *mut Self as _);
+                Some(t), self.as_mut_raw() as _);
 
             if !NT_SUCCESS(status) {
                 println!("KernelThread Create Error:{}",status);
-                ObfDereferenceObject(self.thread_handle);
                 return false;
-            }else{
-                println!("KernelThread Create Success");
             }
-        }
 
+            // wait thread satrt
+            let _ = KeWaitForSingleObject(self.wait_start_event.as_mut_raw() as _, Executive as _,
+            KernelMode as _, 0, core::ptr::null_mut());
+
+            self.thread_objet = Ethread::from_handle(&mut self.thread_handle as *mut _ as _);
+        }
         return true;
     }
-
-    // pub fn stop(&mut self) {
-    //     unsafe{
-    //         KeSetEvent(self.stop_event, Increment, Wait)
-    //     }
-    // }
-
 }
 
-impl<T> Drop for Thread<T> {
+impl<T> Drop for SystemThread<T> {
     fn drop(&mut self) {
         unsafe{
-            asm!{
-                "int 3"
-            }
-        }
-        println!("Thread Drop");
-        // 确保正确清理资源
-        unsafe {
-            if !self.thread_handle.is_null() {
-                // 发送停止事件
-                // 假设你有机制通知线程停止运行
-                // KeSetEvent(self.stop_event, 0, 0u8);
-
-                // 等待线程终止
-                // let _ = KeWaitForSingleObject(self.thread_handle, Executive, KernelMode as _, 0, core::ptr::null_mut());
-
-                // 关闭线程句柄
-                let _ = ZwClose(self.thread_handle);
-            }
-
-            if !self.stop_event_handle.is_null() {
-                // 关闭事件句柄
-                let _ = ZwClose(self.stop_event_handle);
-            }
+            let  _r = KeSetEvent(self.stop_event.as_mut_raw(), 0, 0);
+            let _ = KeWaitForSingleObject(self.thread_exit_event.as_mut_raw() as _, Executive as _,
+                KernelMode as _, 0, core::ptr::null_mut());
         }
     }
 }

@@ -32,7 +32,7 @@ impl<T> ReadWriteLock<T> {
     }
 
     pub fn write(&self) -> WriteGuard<T> {
-        while self.lock.compare_and_swap(false, true, Ordering::Acquire) {}
+        while self.lock.compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed).is_err() {}
         while self.readers.load(Ordering::Acquire) != 0 {}
         WriteGuard { lock: self }
     }

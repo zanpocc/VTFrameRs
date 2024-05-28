@@ -6,7 +6,6 @@ use wdk_sys::{OBJECT_ATTRIBUTES, OBJ_CASE_INSENSITIVE, OBJ_KERNEL_HANDLE};
 pub mod string;
 pub mod bitfield;
 pub mod registry;
-pub mod memory;
 pub mod file;
 pub mod timer;
 pub mod mutex;
@@ -14,9 +13,9 @@ pub mod spinlock;
 pub mod rwlock;
 pub mod os_version;
 pub mod thread;
+pub mod memory;
+pub mod wrap;
 
-
-#[macro_use]
 extern crate lazy_static;
 
 pub fn init_obj_attr(oa: &mut OBJECT_ATTRIBUTES,name: &str) {

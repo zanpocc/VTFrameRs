@@ -361,6 +361,7 @@ dependencies = [
 name = "moon-log"
 version = "0.1.0"
 dependencies = [
+ "lazy_static",
  "moon-driver-utils",
  "wdk",
  "wdk-sys",

@@ -1,7 +1,7 @@
 use core::ffi::c_void;
 
 use alloc::ffi::CString;
-use moon_driver_utils::{file::File, spinlock::SpinLock};
+use moon_driver_utils::{file::File, memory::pp::PP, spinlock::ReentrantSpinLock};
 use wdk_sys::{ntddk::{memset, strlen, MmAllocateContiguousMemory, MmFreeContiguousMemory}, PHYSICAL_ADDRESS, SIZE_T};
 
 use crate::{info, println};
@@ -20,7 +20,7 @@ pub struct CircularLogBuffer {
     offset: u64,
     buffer: *mut u8, // 2mb
     file: File,
-    lock: SpinLock,
+    lock: ReentrantSpinLock,
 }
 
 const LOG_BUFFER_SIZE: SIZE_T = 1024;
@@ -28,9 +28,14 @@ const LOG_BUFFER_SIZE: SIZE_T = 1024;
 unsafe impl Sync for CircularLogBuffer{}
 unsafe impl Send for CircularLogBuffer{}
 
+
+
+lazy_static!{
+    pub static ref LOG:PP<CircularLogBuffer> = PP::new(CircularLogBuffer::new());
+}
+
 impl CircularLogBuffer {
     pub fn new() -> Self {
-
         let mut max_size:PHYSICAL_ADDRESS = PHYSICAL_ADDRESS::default();
             max_size.QuadPart = i64::MAX;
             
@@ -44,12 +49,12 @@ impl CircularLogBuffer {
             offset: 0, 
             buffer: r,
             file: File::new("\\??\\C:\\20240330.log"),
-            lock: SpinLock::new(),
+            lock: ReentrantSpinLock::new(),
         }
     }
 
     pub fn persist_to_file(&mut self) {
-        println!("persist_to_file");
+        let _ = self.lock.lock();
 
         if self.offset == 0 {
             println!("persist_to_file do nothing");
@@ -63,13 +68,12 @@ impl CircularLogBuffer {
             let length = unsafe { strlen(&mut entry.buffer as *mut u8 as *const i8) } as u32;
             let size = (core::mem::size_of::<LogEntry>() - 1 + length as usize) as u64;
 
-            // println!("p:{:X},offset:{},length:{}",&mut entry.buffer as *mut u8 as u64,i,length);
+            // println!("p:{:X},offset:{},length:{}",&mut sentry.buffer as *mut u8 as u64,i,length);
 
             self.file.write(&mut  entry.buffer as *mut u8 as *mut i8,length);
 
             i += size;
         }
-
 
         // zero memory
         unsafe { memset(self.buffer as *mut c_void,0, LOG_BUFFER_SIZE) };
@@ -78,16 +82,8 @@ impl CircularLogBuffer {
         self.offset = 0;
     }
 
-    pub fn acquire(&mut self){
-        self.lock.acquire();
-    }
-
-    pub fn release(&mut self){
-        self.lock.release();
-    }
-
     pub fn write_log(&mut self, level: [u8; 5],args: core::fmt::Arguments) {
-        self.acquire();
+        let _ = self.lock.lock();
 
         let buff = CString::new(alloc::format!("{args}\r\n"))
             .expect("CString should be able to be created from a String.");
@@ -101,7 +97,6 @@ impl CircularLogBuffer {
 
         // overloap
         if self.offset + size >= LOG_BUFFER_SIZE {
-            // todo:持久化存储
             info!("log buffer overloap");
             self.persist_to_file();
         }
@@ -121,10 +116,6 @@ impl CircularLogBuffer {
 
         // next
         self.offset += size;
-
-        self.release();
-
-        // info!("offset:{}",self.offset);
     }
 }
 
@@ -132,7 +123,6 @@ impl CircularLogBuffer {
 impl Drop for CircularLogBuffer{
     fn drop(&mut self) {
         if !self.buffer.is_null(){
-            info!("CircularLogBuffer Drop");
             unsafe{
                 MmFreeContiguousMemory(self.buffer as _);
             }

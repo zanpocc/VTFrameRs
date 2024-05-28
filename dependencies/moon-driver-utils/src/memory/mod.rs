@@ -1,6 +1,9 @@
+pub mod pp;
+pub mod npp;
+
 use core::{arch::asm, ffi::c_void};
 
-use wdk_sys::{ntddk::{ExAllocatePool, ExFreePool, KeLowerIrql, KfRaiseIrql}, DISPATCH_LEVEL, KIRQL, SIZE_T, _POOL_TYPE::NonPagedPool};
+use wdk_sys::{ntddk::{ExAllocatePool, ExFreePool, KeLowerIrql, KfRaiseIrql}, DISPATCH_LEVEL, KIRQL, SIZE_T, _POOL_TYPE::PagedPool};
 
 
 pub struct StackPagePoolMemory{
@@ -23,7 +26,7 @@ impl Drop for StackPagePoolMemory {
 
 pub fn allocate_page_pool(size: u64) -> *mut c_void{
     // unsafe { ExAllocatePool2(POOL_FLAG_PAGED, size as _, 2579) }
-    unsafe{ ExAllocatePool(NonPagedPool, size as SIZE_T) }
+    unsafe{ ExAllocatePool(PagedPool, size as SIZE_T) }
 }
 
 pub fn free_page_pool(p: *mut c_void) {

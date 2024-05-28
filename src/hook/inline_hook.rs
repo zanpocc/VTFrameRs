@@ -1,7 +1,6 @@
 use alloc::vec::Vec;
 use moon_driver_utils::{memory::{wpoff, wpon}, rwlock::ReadWriteLock};
 use moon_log::info;
-use wdk::println;
 use wdk_sys::{ntddk::memcpy, ACCESS_MASK, NTSTATUS, PCLIENT_ID, PHANDLE64, POBJECT_ATTRIBUTES};
 
 use crate::slib::distorm35::DistormAsmLength;

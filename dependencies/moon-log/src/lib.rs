@@ -5,6 +5,9 @@ pub mod event;
 
 extern crate alloc;
 
+#[macro_use]
+extern crate lazy_static;
+
 use alloc::ffi::CString;
 use wdk_sys::ntddk::DbgPrint;
 

@@ -10,3 +10,5 @@ description = "Windows Kernel Utils"
 wdk = "0.2.0"
 wdk-sys = "0.2.0"
 moon-driver-utils = {path = "../moon-driver-utils",version = "*"}
+
+lazy_static = "1.4.0"

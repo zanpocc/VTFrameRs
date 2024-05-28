@@ -23,6 +23,7 @@ pub mod symbol {
         param_table_base: *mut core::ffi::c_void,
     }
 
+    #[allow(unused)]
     pub fn get_ssdt_address() -> *mut SystemServiceTable {
         let start_search_address = read_msr(MSR_LSTAR);
         let end_search_address = start_search_address + 0x500;
