@@ -23,8 +23,8 @@ use device::{device::Device, ioctl::IoControl, symbolic_link::SymbolicLink};
 use driver::driver::Driver;
 use hook::inline_hook::InlineHook;
 use mem::mem::PageTableTansform;
-use moon_driver_utils::{memory::{npp::NPP, pp::PP}, thread::{self, SystemThread}};
-use moon_log::{buffer::LOG, error, info, println};
+use moon_driver_utils::memory::npp::NPP;
+use moon_log::{buffer::LOG, error, info};
 
 // #[cfg(not(test))]
 use mem::global_alloc::WDKAllocator;
@@ -77,22 +77,11 @@ pub unsafe fn my_nt_open_process(process_handle: PHANDLE64,desired_access: ACCES
     STATUS_UNSUCCESSFUL
 }
 
-pub unsafe fn log_thread(args: &mut Option<LOG>){
-    let _ = args;
-    let t = &mut *LOG.get();
-    t.persist_to_file();
-    t.write_log([0,0,0,0,1], format_args!("Thread Test Log:{}",99));
-}
-
-
 pub unsafe fn test() {
-    let t = &mut *LOG.get();
-    for i in 0..100 {
-        t.write_log([0,0,0,0,9], format_args!("Test Log:{}",i));
+    for i in 0..1000 {
+        info!("Test Log:{}",i);
     }
 }
-
-static mut THR:Option<PP<SystemThread<LOG>>> = Option::None;
 
 #[export_name = "DriverEntry"] // WDF expects a symbol with the name DriverEntry
 pub unsafe extern "system" fn driver_entry(
@@ -106,18 +95,6 @@ pub unsafe extern "system" fn driver_entry(
     let nt_open_process = get_ssdt_function_by_name("NtOpenProcess");
     info!("NtOpenProcess:{:p}",nt_open_process);
 
-    let t = thread::SystemThread::new(log_thread, None, Some(5000));
-
-    match t {
-        Ok(mut tt) => {
-            tt.start();
-            THR = Some(tt);
-        }  
-        Err(e) => {
-            println!("{}",e);
-        }
-    }
-
     test();
 
     let hook = InlineHook::inline_hook(nt_open_process as _, my_nt_open_process as _);
@@ -128,7 +105,7 @@ pub unsafe extern "system" fn driver_entry(
             (&mut w).as_mut().unwrap().nt_open_process.as_mut().unwrap().hook();
         }
         Err(_) => {
-            info!("hook错误");
+            info!("hook error");
         }
     }
 
@@ -201,9 +178,11 @@ pub unsafe extern "system" fn driver_entry(
 
 pub unsafe extern "C" fn driver_unload(_driver: *mut DRIVER_OBJECT) {
     // clear resources when drvier unload
-    let _ = &(HOOK_LIST.write()).take();
-    __GD.take();
-
-    THR.take();
+    let _ = __GD.take();
+    let _ = HOOK_LIST.write().take();
+    
     info!("DriverUnload Success");
+
+    // drop in end
+    let _ = LOG.drop_internel();
 }

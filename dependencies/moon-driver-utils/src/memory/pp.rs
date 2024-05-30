@@ -19,21 +19,30 @@ impl<T> PP<T> {
             ExAllocatePool(PagedPool, layout.size() as _) as *mut T 
         };
 
-        if ptr.is_null(){
-            panic!("Error to ExAllocatePool PagedPool");
-        }
-
         // Write the value into the allocated memory
-        unsafe {
+        unsafe { 
             memset(ptr as _, 0, layout.size() as _);
             core::ptr::write(ptr, value) 
         };
-
+        
         PP { ptr }
     }
 
-    pub fn get(&self) -> *mut T {
+    pub fn drop_internel(&self) {
+        // Explicitly drop the value first
+        unsafe { core::ptr::drop_in_place(self.as_raw()) };
+                
+        // Free the memory using ExFreePool
+        unsafe { ExFreePool(self.as_raw() as *mut _) };
+    }
+
+    pub fn as_raw(&self) -> *mut T {
         self.ptr
+    }
+
+    // drop by youself
+    pub fn into_raw(&mut self) -> *mut T{
+        unsafe { core::ptr::replace(&mut self.ptr, core::ptr::null_mut()) }
     }
 }
 
@@ -53,10 +62,6 @@ impl<T> DerefMut for PP<T> {
 
 impl<T> Drop for PP<T> {
     fn drop(&mut self) {
-        // Explicitly drop the value first
-        unsafe { core::ptr::drop_in_place(self.get()) };
-        
-        // Free the memory using ExFreePool
-        unsafe { ExFreePool(self.get() as *mut _) };
+        self.drop_internel();
     }
 }

@@ -20,6 +20,7 @@ type ThreadFn<T> = unsafe fn(args: &mut Option<T>);
 
 impl<T> SystemThread<T> {
     pub unsafe extern "C" fn thread_proc(thread: *mut SystemThread<T>) {
+        println!("Thread Running");
         let t = &mut *thread;
 
         KeSetEvent(t.wait_start_event.as_mut_raw(), 0, 0);
@@ -49,6 +50,7 @@ impl<T> SystemThread<T> {
             }
         }
 
+        println!("Ready to exit thread");
         KeSetEvent(t.thread_exit_event.as_mut_raw() as _, 0, 0);
 
         let _ = PsTerminateSystemThread(0);
@@ -93,9 +95,13 @@ impl<T> SystemThread<T> {
                 return false;
             }
 
+            println!("Create Thread Success Wait Thread Start");
+
             // wait thread satrt
             let _ = KeWaitForSingleObject(self.wait_start_event.as_mut_raw() as _, Executive as _,
             KernelMode as _, 0, core::ptr::null_mut());
+
+            println!("SystemThread start success");
 
             self.thread_objet = Ethread::from_handle(&mut self.thread_handle as *mut _ as _);
         }
@@ -105,6 +111,7 @@ impl<T> SystemThread<T> {
 
 impl<T> Drop for SystemThread<T> {
     fn drop(&mut self) {
+        println!("SystemThread Drop");
         unsafe{
             let  _r = KeSetEvent(self.stop_event.as_mut_raw(), 0, 0);
             let _ = KeWaitForSingleObject(self.thread_exit_event.as_mut_raw() as _, Executive as _,

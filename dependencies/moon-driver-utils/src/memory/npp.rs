@@ -28,8 +28,13 @@ impl<T> NPP<T> {
         NPP { ptr }
     }
 
-    pub fn as_ptr(&self) -> *mut T {
+    pub fn as_raw(&self) -> *mut T {
         self.ptr
+    }
+
+    // drop by youself
+    pub fn into_raw(&mut self) -> *mut T{
+        unsafe { core::ptr::replace(&mut self.ptr, core::ptr::null_mut()) }
     }
 }
 
@@ -50,9 +55,9 @@ impl<T> DerefMut for NPP<T> {
 impl<T> Drop for NPP<T> {
     fn drop(&mut self) {
         // Explicitly drop the value first
-        unsafe { core::ptr::drop_in_place(self.as_ptr()) };
+        unsafe { core::ptr::drop_in_place(self.as_raw()) };
         
         // Free the memory using ExFreePool
-        unsafe { ExFreePool(self.as_ptr() as *mut _) };
+        unsafe { ExFreePool(self.as_raw() as *mut _) };
     }
 }

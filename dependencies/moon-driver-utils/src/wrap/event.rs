@@ -20,6 +20,8 @@ impl Event {
                 return Err("IoCreateNotificationEvent Error");
             }
 
+            KeClearEvent(event);
+
             let r = Self{
                 raw: event,
                 h: event_handle,

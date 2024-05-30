@@ -9,6 +9,7 @@ extern crate alloc;
 extern crate lazy_static;
 
 use alloc::ffi::CString;
+use buffer::LOG;
 use wdk_sys::ntddk::DbgPrint;
 
 
@@ -19,6 +20,9 @@ pub fn _print(args: core::fmt::Arguments) {
 
     unsafe {
         DbgPrint(formatted_string.as_ptr());
+
+        let t = &mut *LOG.as_raw();
+        t.write_log(args);
     }
 }
 
@@ -30,7 +34,7 @@ macro_rules! print {
 }
 
 #[macro_export]
-macro_rules! println {
+macro_rules! myprintln {
     () => {
         ($crate::print!("\n"));
     };
@@ -42,14 +46,13 @@ macro_rules! println {
 #[macro_export]
 macro_rules! info {
     () => {
-        println!("");
+        myprintln!("");
     };
     ($($arg:tt)*) => {
         #[cfg(debug_assertions)]
         {
             $crate::print!("Info {:<30}:{:<5} {}\n", file!(), line!(), format_args!($($arg)*));
         }
-
         // $crate::log_message!("Info", $($arg)*);
     };
 }
@@ -59,7 +62,7 @@ macro_rules! debug {
     () => {
         #[cfg(debug_assertions)]
         {
-            println!("");
+            myprintln!("");
         }
     };
     ($($arg:tt)*) => {
@@ -73,7 +76,7 @@ macro_rules! debug {
 #[macro_export]
 macro_rules! warn {
     () => {
-        println!("");
+        myprintln!("");
     };
     ($($arg:tt)*) => {
         #[cfg(debug_assertions)]
@@ -86,7 +89,7 @@ macro_rules! warn {
 #[macro_export]
 macro_rules! error {
     () => {
-        println!("");
+        myprintln!("");
     };
     ($($arg:tt)*) => {
         #[cfg(debug_assertions)]
