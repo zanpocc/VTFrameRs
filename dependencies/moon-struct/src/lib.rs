@@ -7,3 +7,4 @@ pub mod inner;
 pub mod m;
 pub mod x86;
 pub mod pe;
+pub mod constant;

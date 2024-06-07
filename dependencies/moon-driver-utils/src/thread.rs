@@ -3,7 +3,7 @@ use core::ffi::c_void;
 use wdk::println;
 use wdk_sys::{ntddk::{KeSetEvent, KeWaitForSingleObject, PsCreateSystemThread, PsTerminateSystemThread}, LARGE_INTEGER, NT_SUCCESS, STATUS_SUCCESS, THREAD_ALL_ACCESS, _KWAIT_REASON::Executive, _MODE::KernelMode};
 
-use crate::{memory::pp::PP, wrap::{ethread::Ethread, event::Event, handle::Handle}};
+use crate::{memory::npp::NPP, wrap::{ethread::Ethread, event::Event, handle::Handle}};
 
 pub struct SystemThread<T> {
     wait_start_event: Event,
@@ -60,12 +60,12 @@ impl<T> SystemThread<T> {
         self as *mut _
     }
 
-    pub fn new(thread: ThreadFn<T>,args: Option<T>, timer: Option<u64>) -> Result<PP<Self>,&'static str> {
+    pub fn new(thread: ThreadFn<T>,args: Option<T>, timer: Option<u64>) -> Result<NPP<Self>, &'static str> {
         let stop_event = Event::new()?;
         let thread_exit_event = Event::new()?;
         let wait_start_event = Event::new()?;
 
-        let r = PP::new(Self {
+        let r = NPP::new(Self {
             wait_start_event,
             stop_event,
             thread_exit_event,

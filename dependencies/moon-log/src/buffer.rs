@@ -1,11 +1,12 @@
-use core::ffi::c_void;
-
-use alloc::ffi::CString;
-use moon_driver_utils::{file::File, memory::pp::PP, spinlock::ReentrantSpinLock, thread::{self, SystemThread}};
+use alloc::{ffi::CString, format};
+use moon_driver_utils::{file::File, memory::npp::NPP, spinlock::ReentrantSpinLock, thread::{self, SystemThread}, time::get_current_time};
 use wdk::println;
-use wdk_sys::{ntddk::{memset, strlen, MmAllocateContiguousMemory, MmFreeContiguousMemory}, PHYSICAL_ADDRESS, SIZE_T};
+use wdk_sys::{ntddk::{memset, strlen}, SIZE_T};
 
 extern crate alloc;
+
+const LOG_BUFFER_SIZE: SIZE_T = 1024;
+
 
 #[repr(C)]
 struct LogEntry {
@@ -16,30 +17,45 @@ struct LogEntry {
 #[repr(C)]
 pub struct CircularLogBuffer {
     offset: u64,
-    buffer: *mut u8, // 2mb
+    buffer: NPP<[u8;LOG_BUFFER_SIZE as _]>, // 2mb
     file: File,
     lock: ReentrantSpinLock,
-    thread: Option<PP<SystemThread<LOG>>>
+    thread: Option<NPP<SystemThread<LOG>>>
 }
-
-const LOG_BUFFER_SIZE: SIZE_T = 1024;
 
 unsafe impl Sync for CircularLogBuffer{}
 unsafe impl Send for CircularLogBuffer{}
 
-pub unsafe fn log_thread(args: &mut Option<LOG>){
+pub unsafe fn log_thread(_args: &mut Option<LOG>){
     println!("log thread");
-    let _ = args;
-    let t = &mut *LOG.as_raw();
-    t.persist_to_file();
+
+    match *LOG {
+        Some(ref log) => {
+            let t = &mut *log.as_raw();
+            t.persist_to_file();
+        }
+        None => {
+            // do nothing
+        }
+    }
+    
+}
+
+pub fn drop_log() {
+    match &*LOG {
+        Some(log) => {
+            log.drop_internel();
+        }
+        None => {}
+    }
 }
 
 lazy_static!{
     // todo: fix to option type
-    pub static ref LOG:PP<CircularLogBuffer> = {
+    pub static ref LOG:Option<NPP<CircularLogBuffer>> = {
         println!("LOG Init");
 
-        let mut r = PP::new(CircularLogBuffer::new());
+        let mut r = NPP::new(CircularLogBuffer::new());
 
         // todo:time config
         let t = thread::SystemThread::new(log_thread, None, Some(5000));
@@ -51,29 +67,21 @@ lazy_static!{
             }  
             Err(e) => {
                 println!("{}",e);
+                return Option::None;
             }
         }
         
-        r
+        Some(r)
     };
 }
 
 impl CircularLogBuffer {
     pub fn new() -> Self {
-        let mut max_size:PHYSICAL_ADDRESS = PHYSICAL_ADDRESS::default();
-            max_size.QuadPart = i64::MAX;
-            
-        let r:*mut u8 = unsafe{ 
-            MmAllocateContiguousMemory(LOG_BUFFER_SIZE,max_size) 
-        } as _;
-
-        unsafe { memset(r as *mut c_void,0, LOG_BUFFER_SIZE) };
-
         Self { 
             offset: 0, 
-            buffer: r,
+            buffer: NPP::<[u8;LOG_BUFFER_SIZE as _]>::new_type(),
             // todo:filename config
-            file: File::new("\\??\\C:\\rust_driver.log"),
+            file: File::new(&format!("\\??\\C:\\{}.log",get_current_time())),
             lock: ReentrantSpinLock::new(),
             thread: Option::None,
         }
@@ -90,7 +98,7 @@ impl CircularLogBuffer {
         // from 0 to offset
         let mut i = 0;
         while i < self.offset {
-            let entry = unsafe { &mut *((self.buffer as u64 + i) as *mut LogEntry) };
+            let entry = unsafe { &mut *((self.buffer.as_raw() as u64 + i) as *mut LogEntry) };
             let length = unsafe { strlen(&mut entry.buffer as *mut u8 as *const i8) } as u32;
             let size = (core::mem::size_of::<LogEntry>() - 1 + length as usize) as u64;
 
@@ -100,7 +108,7 @@ impl CircularLogBuffer {
         }
 
         // zero memory
-        unsafe { memset(self.buffer as *mut c_void,0, LOG_BUFFER_SIZE) };
+        unsafe { memset(self.buffer.as_raw() as _,0, LOG_BUFFER_SIZE) };
 
         // point to start
         self.offset = 0;
@@ -124,7 +132,7 @@ impl CircularLogBuffer {
         }
         
         unsafe {
-            let entry = &mut *((self.buffer as u64 + self.offset) as *mut LogEntry);
+            let entry = &mut *((self.buffer.as_raw() as u64 + self.offset) as *mut LogEntry);
             entry.length = length;
 
             let p = &mut entry.buffer as *mut u8;
@@ -139,10 +147,5 @@ impl CircularLogBuffer {
 impl Drop for CircularLogBuffer{
     fn drop(&mut self) {
         println!("CircularLogBuffer drop");
-        if !self.buffer.is_null(){
-            unsafe{
-                MmFreeContiguousMemory(self.buffer as _);
-            }
-        }
     }
 }

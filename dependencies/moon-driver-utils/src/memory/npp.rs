@@ -28,14 +28,35 @@ impl<T> NPP<T> {
         NPP { ptr }
     }
 
+    pub fn new_type() -> Self {
+        // Calculate the layout for the type T
+        let layout = Layout::new::<T>();
+        
+        // Allocate memory using ExAllocatePool
+        let ptr = unsafe { 
+            ExAllocatePool(NonPagedPool, layout.size() as _) as *mut T 
+        };
+
+        // Write the value into the allocated memory
+        unsafe { 
+            memset(ptr as _, 0, layout.size() as _);
+        };
+        
+        NPP { ptr }
+    }
+
+    pub fn drop_internel(&self) {
+        // Explicitly drop the value first
+        unsafe { core::ptr::drop_in_place(self.as_raw()) };
+                
+        // Free the memory using ExFreePool
+        unsafe { ExFreePool(self.as_raw() as *mut _) };
+    }
+
     pub fn as_raw(&self) -> *mut T {
         self.ptr
     }
 
-    // drop by youself
-    pub fn into_raw(&mut self) -> *mut T{
-        unsafe { core::ptr::replace(&mut self.ptr, core::ptr::null_mut()) }
-    }
 }
 
 impl<T> Deref for NPP<T> {
@@ -54,10 +75,8 @@ impl<T> DerefMut for NPP<T> {
 
 impl<T> Drop for NPP<T> {
     fn drop(&mut self) {
-        // Explicitly drop the value first
-        unsafe { core::ptr::drop_in_place(self.as_raw()) };
-        
-        // Free the memory using ExFreePool
-        unsafe { ExFreePool(self.as_raw() as *mut _) };
+        if !self.ptr.is_null(){
+            self.drop_internel();
+        }
     }
 }

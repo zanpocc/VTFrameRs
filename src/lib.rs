@@ -22,9 +22,8 @@ extern crate lazy_static;
 use device::{device::Device, ioctl::IoControl, symbolic_link::SymbolicLink};
 use driver::driver::Driver;
 use hook::inline_hook::InlineHook;
-use mem::mem::PageTableTansform;
 use moon_driver_utils::memory::npp::NPP;
-use moon_log::{buffer::LOG, error, info};
+use moon_log::{buffer::drop_log, error, info};
 
 // #[cfg(not(test))]
 use mem::global_alloc::WDKAllocator;
@@ -121,16 +120,6 @@ pub unsafe extern "system" fn driver_entry(
             return STATUS_UNSUCCESSFUL;
         }
     }
-
-    match PageTableTansform::new(true) {
-        Ok(ptt) => {
-            __GD.as_mut().unwrap().ptt = Some(ptt);
-        }
-        Err(()) => {
-            __GD.take();
-            return STATUS_UNSUCCESSFUL;
-        }
-    }
     
     let mut driver = Driver::from_raw(driver_object);
 
@@ -184,5 +173,5 @@ pub unsafe extern "C" fn driver_unload(_driver: *mut DRIVER_OBJECT) {
     info!("DriverUnload Success");
 
     // drop in end
-    let _ = LOG.drop_internel();
+    drop_log();
 }

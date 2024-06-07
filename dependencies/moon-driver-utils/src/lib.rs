@@ -15,6 +15,7 @@ pub mod os_version;
 pub mod thread;
 pub mod memory;
 pub mod wrap;
+pub mod time;
 
 extern crate lazy_static;
 

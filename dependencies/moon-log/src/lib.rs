@@ -21,8 +21,13 @@ pub fn _print(args: core::fmt::Arguments) {
     unsafe {
         DbgPrint(formatted_string.as_ptr());
 
-        let t = &mut *LOG.as_raw();
-        t.write_log(args);
+        match *LOG {
+            Some(ref log) => {
+                let t = &mut *log.as_raw();
+                t.write_log(args);
+            }
+            None => {}
+        }
     }
 }
 

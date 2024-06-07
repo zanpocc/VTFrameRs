@@ -28,6 +28,23 @@ impl<T> PP<T> {
         PP { ptr }
     }
 
+    pub fn new_type() -> Self {
+        // Calculate the layout for the type T
+        let layout = Layout::new::<T>();
+        
+        // Allocate memory using ExAllocatePool
+        let ptr = unsafe { 
+            ExAllocatePool(PagedPool, layout.size() as _) as *mut T 
+        };
+
+        // Write the value into the allocated memory
+        unsafe { 
+            memset(ptr as _, 0, layout.size() as _);
+        };
+        
+        PP { ptr }
+    }
+
     pub fn drop_internel(&self) {
         // Explicitly drop the value first
         unsafe { core::ptr::drop_in_place(self.as_raw()) };
@@ -40,10 +57,6 @@ impl<T> PP<T> {
         self.ptr
     }
 
-    // drop by youself
-    pub fn into_raw(&mut self) -> *mut T{
-        unsafe { core::ptr::replace(&mut self.ptr, core::ptr::null_mut()) }
-    }
 }
 
 impl<T> Deref for PP<T> {
@@ -62,6 +75,8 @@ impl<T> DerefMut for PP<T> {
 
 impl<T> Drop for PP<T> {
     fn drop(&mut self) {
-        self.drop_internel();
+        if !self.ptr.is_null(){
+            self.drop_internel();
+        }
     }
 }
