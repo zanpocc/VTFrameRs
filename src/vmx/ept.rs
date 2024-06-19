@@ -9,6 +9,21 @@ pub mod ept {
 
     use crate::{inner::initialize_list_head, utils::utils::virtual_address_to_physical_address, vmx::data::{pml3e, pml2e_2mb, ept_memory_type::{MEMORY_TYPE_UNCACHEABLE, MEMORY_TYPE_WRITE_BACK}, ept_pointer, pml4e}};
 
+    enum PoolAllocationIntention {
+        TRACKING_HOOKED_PAGES,
+        EXEC_TRAMPOLINE,
+        SPLIT_2MB_PAGING_TO_4KB_PAGE,
+    }
+
+    #[repr(C)]
+    pub struct PoolTable{
+        list_entry: LIST_ENTRY,
+        address: *mut u8,
+        size: usize,
+        intention: PoolAllocationIntention,
+        is_busy: bool,
+        should_be_freed: bool,
+    }
     
     // sizeof=512*8 + 512*8 + 512*8*512 + 0x1000 = 2109440
     // actual=2109440
@@ -28,9 +43,17 @@ pub mod ept {
         memory_type: u8,
     }
 
+    #[repr(C)]
+    #[derive(Default)]
+    pub struct InveptDescriptor {
+	    pub ept_pointer: u64,
+	    pub reserved: u64,
+    }
+
     #[derive(Default)]
     pub struct EptState {
         hooked_pages_list: LIST_ENTRY, 
+        memory_pool_list: LIST_ENTRY, 
         memory_ranges: [MtrrRangeDescriptor;9],
         number_of_enabled_memory_ranges: u32,
         ept_pointer: u64,
@@ -173,6 +196,7 @@ pub mod ept {
             ept_state.ept_build_mtrr_map();
             ept_state.ept_logical_processor_initialize();
             initialize_list_head(&mut ept_state.hooked_pages_list);
+            initialize_list_head(&mut ept_state.memory_pool_list);
 
             // ept_pointer
             ept_state.ept_pointer = 0;
@@ -185,6 +209,7 @@ pub mod ept {
             ept_state.ept_pointer = set_bits_value(ept_state.ept_pointer, ept_pointer::PHYS_ADDR_START, ept_pointer::PHYS_ADDR_LEN,
                 phys_addr >> 12
             );
+
 
             return ept_state;
         }

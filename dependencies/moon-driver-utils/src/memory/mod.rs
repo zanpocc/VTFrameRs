@@ -1,62 +1,89 @@
 pub mod pp;
 pub mod npp;
+pub mod utils;
 
-use core::{arch::asm, ffi::c_void};
+use core::{alloc::Layout, fmt, ops::{Deref, DerefMut}, ptr::NonNull};
 
-use wdk_sys::{ntddk::{ExAllocatePool, ExFreePool, KeLowerIrql, KfRaiseIrql}, DISPATCH_LEVEL, KIRQL, SIZE_T, _POOL_TYPE::PagedPool};
+use wdk_sys::{ntddk::{memset, ExAllocatePool, ExFreePool}, POOL_TYPE};
 
+#[derive(Debug)]
+pub struct AllocationError;
 
-pub struct StackPagePoolMemory{
-    pub p: *mut c_void
-}
-
-impl StackPagePoolMemory{
-    pub fn new(size: u32) -> Self{
-        Self { p: allocate_page_pool(size as _) }
+impl fmt::Display for AllocationError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Memory allocation failed")
     }
 }
 
-impl Drop for StackPagePoolMemory {
+
+pub struct PoolMemory<T> {
+    ptr: NonNull<T>,
+}
+
+unsafe impl<T: Send> Send for PoolMemory<T> {}
+unsafe impl<T: Sync> Sync for PoolMemory<T> {}
+
+impl<T> PoolMemory<T> {
+    fn allocate_memory(value: Option<T>, pool_type: POOL_TYPE) -> Result<Self, AllocationError> {
+        // Calculate the layout for the type T
+        let layout = Layout::new::<T>();
+        
+        // Allocate memory using ExAllocatePool
+        let ptr = unsafe { 
+            ExAllocatePool(pool_type, layout.size() as _) as *mut T 
+        };
+
+        let data = NonNull::new(ptr).ok_or(AllocationError)?;
+
+        // Write the value into the allocated memory
+        unsafe { 
+            memset(ptr as _, 0, layout.size() as _);
+            if let Some(v) = value {
+                core::ptr::write(ptr, v);
+            }
+        };
+        
+        Ok(Self { ptr: data })
+    }
+
+    pub fn new(value: T,pool_type: POOL_TYPE) -> Result<Self, AllocationError> {
+        Self::allocate_memory(Some(value),pool_type)
+    }
+
+    pub fn new_type(pool_type: POOL_TYPE) -> Result<Self, AllocationError> {
+        Self::allocate_memory(None,pool_type)
+    }
+
+    fn drop_internel(&self) {
+        // Explicitly drop the value first
+        unsafe { core::ptr::drop_in_place(self.as_raw()) };
+                
+        // Free the memory using ExFreePool
+        unsafe { ExFreePool(self.as_raw() as *mut _) };
+    }
+
+    pub fn as_raw(&self) -> *mut T {
+        self.ptr.as_ptr()
+    }
+
+}
+
+impl<T> Deref for PoolMemory<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*self.ptr.as_ptr() }
+    }
+}
+
+impl<T> DerefMut for PoolMemory<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { &mut *self.ptr.as_ptr() }
+    }
+}
+
+impl<T> Drop for PoolMemory<T> {
     fn drop(&mut self) {
-        if !self.p.is_null(){
-            free_page_pool(self.p);
-        }
-    }
-}
-
-pub fn allocate_page_pool(size: u64) -> *mut c_void{
-    // unsafe { ExAllocatePool2(POOL_FLAG_PAGED, size as _, 2579) }
-    unsafe{ ExAllocatePool(PagedPool, size as SIZE_T) }
-}
-
-pub fn free_page_pool(p: *mut c_void) {
-   unsafe { ExFreePool(p) } 
-}
-
-pub fn wpoff() -> KIRQL {
-    unsafe{ 
-        let irql = KfRaiseIrql(DISPATCH_LEVEL as _);
-        asm!{
-            "push rax",
-            "mov rax,cr0",
-            "and rax,0xfffffffffffeffff",
-            "mov cr0,rax",
-            "pop rax",
-
-            "cli",
-        };
-        return irql;
-    }
-}
-
-pub fn wpon(irql:KIRQL) {
-    unsafe{ 
-        asm!{
-            "mov rax,cr0",
-            "or rax,0x10000",
-            "sti",
-            "mov cr0,rax",
-        };
-        KeLowerIrql(irql);
+        self.drop_internel();
     }
 }

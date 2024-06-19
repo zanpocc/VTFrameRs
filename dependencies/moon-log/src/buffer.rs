@@ -1,5 +1,5 @@
 use alloc::{ffi::CString, format};
-use moon_driver_utils::{file::File, memory::npp::NPP, spinlock::ReentrantSpinLock, thread::{self, SystemThread}, time::get_current_time};
+use moon_driver_utils::{file::File, memory::npp::NPP, rwlock::{ReadWriteLock, WriteGuard}, spinlock::ReentrantSpinLock, thread::{self, SystemThread}, time::get_current_time};
 use wdk::println;
 use wdk_sys::{ntddk::{memset, strlen}, SIZE_T};
 
@@ -29,62 +29,73 @@ unsafe impl Send for CircularLogBuffer{}
 pub unsafe fn log_thread(_args: &mut Option<LOG>){
     println!("log thread");
 
-    match *LOG {
-        Some(ref log) => {
-            let t = &mut *log.as_raw();
-            t.persist_to_file();
+    let mut rw = LOG.write();
+    match &mut *rw{
+        Some(r) => {
+            r.persist_to_file();
         }
-        None => {
-            // do nothing
-        }
+        _ => {}
     }
-    
 }
 
 pub fn drop_log() {
-    match &*LOG {
-        Some(log) => {
-            log.drop_internel();
-        }
-        None => {}
-    }
+    let mut rw:WriteGuard<Option<NPP<CircularLogBuffer>>> = LOG.write();
+    rw.take();
 }
 
 lazy_static!{
-    // todo: fix to option type
-    pub static ref LOG:Option<NPP<CircularLogBuffer>> = {
+    pub static ref LOG:ReadWriteLock<Option<NPP<CircularLogBuffer>>> = {
         println!("LOG Init");
+        let c = match CircularLogBuffer::new() {
+          Ok(r) => r,
+          Err(e) => {
+            println!("{}", e);
+            return ReadWriteLock::new(Option::None);
+          }  
+        };
 
-        let mut r = NPP::new(CircularLogBuffer::new());
+        let mut r = match NPP::new(c) {
+            Ok(r) => r,
+            Err(e) => {
+                println!("{}",e);
+                return ReadWriteLock::new(Option::None);
+            }
+        };
 
-        // todo:time config
-        let t = thread::SystemThread::new(log_thread, None, Some(5000));
-
-        match t {
+        match thread::SystemThread::new(log_thread, None, Some(5000)) {
             Ok(mut tt) => {
                 tt.start();
                 r.thread = Some(tt);
-            }  
+            } 
             Err(e) => {
                 println!("{}",e);
-                return Option::None;
+                return ReadWriteLock::new(Option::None);
             }
         }
         
-        Some(r)
+        ReadWriteLock::new(Some(r))
     };
 }
 
 impl CircularLogBuffer {
-    pub fn new() -> Self {
-        Self { 
-            offset: 0, 
-            buffer: NPP::<[u8;LOG_BUFFER_SIZE as _]>::new_type(),
-            // todo:filename config
-            file: File::new(&format!("\\??\\C:\\{}.log",get_current_time())),
+    pub fn new() -> Result<Self, alloc::string::String> {
+        let buffer = match NPP::<[u8;LOG_BUFFER_SIZE as _]>::new_type(){
+            Ok(r) => r,
+            Err(_e) => {return Err(alloc::string::String::from("allocate memory error"));}
+        };
+
+        let path = format!("\\??\\C:\\{}.log",get_current_time());
+        let file = File::new(&path)?;
+
+        let r = Self { 
+            offset: 0,
+            buffer,
+            file,
             lock: ReentrantSpinLock::new(),
             thread: Option::None,
-        }
+        };
+
+        Ok(r)
     }
 
     pub fn persist_to_file(&mut self) {
@@ -102,7 +113,13 @@ impl CircularLogBuffer {
             let length = unsafe { strlen(&mut entry.buffer as *mut u8 as *const i8) } as u32;
             let size = (core::mem::size_of::<LogEntry>() - 1 + length as usize) as u64;
 
-            self.file.write(&mut  entry.buffer as *mut u8 as *mut i8,length);
+            let r = self.file.write(&mut  entry.buffer as *mut u8 as *mut i8,length);
+            match r {
+                Err(e) => {
+                    println!("{}",e);
+                }
+                _ => {}
+            }
 
             i += size;
         }

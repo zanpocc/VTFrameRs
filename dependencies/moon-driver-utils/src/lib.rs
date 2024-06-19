@@ -16,6 +16,7 @@ pub mod thread;
 pub mod memory;
 pub mod wrap;
 pub mod time;
+pub mod macor;
 
 extern crate lazy_static;
 

@@ -9,6 +9,8 @@ pub mod vmx_basic {
     pub const VMX_BASIC_TRUE_CTLS:u64 = RT_BIT_64!(55);
 }
 
+
+
 /// Processor-based VM-execution controls.
 pub mod vmx_cpu_based_controls {
     use moon_struct::RT_BIT_32;
@@ -622,6 +624,8 @@ pub mod ept_memory_type{
     pub const MEMORY_TYPE_INVALID:u8         = 0x000000FF;
 }
 
+
+
 //CR
 pub const TYPE_CR_WRITE: u32 = 0;
 pub const TYPE_CR_READ: u32 = 1;
@@ -633,6 +637,16 @@ pub const TYPE_DR_READ: u32 = 1;
 
 pub(crate) mod vm_call{
     // close vt
-    pub const VM_CALL_CLOSE_VT: u64 = 1;
+    pub const EXIT_VT: u64 = 1;
+
+    // ept hook
+    pub const INVEPT_SINGLE_CONTEXT: u64 = 100;
+    pub const INVEPT_ALL_CONTEXT: u64 = 101;
+    pub const PAGE_HOOK: u64 = 110;
 }
 
+pub(crate) mod page_hook_attrib{
+    pub const PAGE_ATTRIBE_READ: u64 = 1;
+    pub const PAGE_ATTRIBE_WRITE: u64 = 1<<1;
+    pub const PAGE_ATTRIBE_EXECUTE: u64 = 1<<2;
+}

@@ -13,10 +13,11 @@ fn write_raw(dst:*mut i32, value: i32) {
 
 pub fn ex_initialize_fast_mutex(fast_mutex: *mut FAST_MUTEX) {
     unsafe {
-        write_raw(&mut (*fast_mutex).Count, FM_LOCK_BIT as _);
-        (*fast_mutex).Owner = core::ptr::null_mut();
-        (*fast_mutex).Contention = 0;
-        KeInitializeEvent(&mut (*fast_mutex).Event, SynchronizationEvent, 0);
+        let fast_mutex = fast_mutex.as_mut().unwrap();
+        write_raw(&mut fast_mutex.Count, FM_LOCK_BIT as _);
+        fast_mutex.Owner = core::ptr::null_mut();
+        fast_mutex.Contention = 0;
+        KeInitializeEvent(&mut fast_mutex.Event, SynchronizationEvent, 0);
         return;
     }
 }

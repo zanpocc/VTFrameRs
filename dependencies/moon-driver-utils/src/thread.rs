@@ -75,7 +75,11 @@ impl<T> SystemThread<T> {
             thread_args: args,
             timer
         });
-        return Ok(r);
+
+        return match r {
+            Ok(rr) => Ok(rr),
+            Err(_) => return Err("Memory Allocate Error")
+        };
     }
 
     pub fn start(&mut self) -> bool {

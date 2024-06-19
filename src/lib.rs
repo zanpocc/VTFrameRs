@@ -33,7 +33,7 @@ use mem::global_alloc::WDKAllocator;
 #[global_allocator]
 static GLOBAL_ALLOCATOR: WDKAllocator = WDKAllocator;
 
-use wdk_sys::{ACCESS_MASK, DRIVER_OBJECT, IRP_MJ_MAXIMUM_FUNCTION, NTSTATUS, PCLIENT_ID, PCUNICODE_STRING, PDRIVER_OBJECT, PHANDLE64, POBJECT_ATTRIBUTES, STATUS_SUCCESS, STATUS_UNSUCCESSFUL};
+use wdk_sys::{ACCESS_MASK, DRIVER_OBJECT, IRP_MJ_MAXIMUM_FUNCTION, NTSTATUS, PCLIENT_ID, PCUNICODE_STRING, PDRIVER_OBJECT, PHANDLE64, POBJECT_ATTRIBUTES, STATUS_SUCCESS, STATUS_UNSUCCESSFUL, _DRIVER_OBJECT};
 
 use crate::{device::device::dispatch_device, gd::gd::GD, hook::inline_hook::{NtOpenProcessFn, HOOK_LIST}, symbol::{generic::OS_INFO, symbol::get_ssdt_function_by_name}, vmx::{check::check_vmx_cpu_support, vmx::Vmm}};
 
@@ -76,25 +76,15 @@ pub unsafe fn my_nt_open_process(process_handle: PHANDLE64,desired_access: ACCES
     STATUS_UNSUCCESSFUL
 }
 
-pub unsafe fn test() {
+pub unsafe fn test() -> Result<(),()>{
+    // test log persistent
     for i in 0..1000 {
         info!("Test Log:{}",i);
     }
-}
 
-#[export_name = "DriverEntry"] // WDF expects a symbol with the name DriverEntry
-pub unsafe extern "system" fn driver_entry(
-    driver_object: PDRIVER_OBJECT,
-    _registry_path: PCUNICODE_STRING,
-) -> NTSTATUS {
-    let status = STATUS_SUCCESS;
-
-    info!("Driver entry");
-
+    // test inline hook
     let nt_open_process = get_ssdt_function_by_name("NtOpenProcess");
     info!("NtOpenProcess:{:p}",nt_open_process);
-
-    test();
 
     let hook = InlineHook::inline_hook(nt_open_process as _, my_nt_open_process as _);
     match hook {
@@ -105,24 +95,36 @@ pub unsafe extern "system" fn driver_entry(
         }
         Err(_) => {
             info!("hook error");
+            return Err(())
         }
     }
 
-    __GD = Some(NPP::new(GD::default()));
+    Ok(())
+}
 
-    info!("{}",OS_INFO.version_name);
+pub unsafe fn init(driver_object: &mut _DRIVER_OBJECT) -> Result<(),()>{
 
+    // allocate global memeory
+    match NPP::new(GD::default()){
+        Ok(r) => {
+            __GD = Some(r);
+        }
+        Err(_e) => {        
+            return Err(());
+        }
+    }
+
+    // check cpu support
     match check_vmx_cpu_support() {
         Ok(_) => {}
         Err(e) => {
             error!("{}",e);
-            __GD.take();
-            return STATUS_UNSUCCESSFUL;
+            return Err(());
         }
     }
     
+    // create device and symboliclink
     let mut driver = Driver::from_raw(driver_object);
-
     match driver.create_device("\\Device\\20240202", 0x22, 0, 0, IoControl{}) {
         Ok(device) => {
             if let Some(gd) = __GD.as_mut() {
@@ -133,8 +135,7 @@ pub unsafe extern "system" fn driver_entry(
                     },
                     Err(e) => {
                         error!("{}",e);
-                        __GD.take();
-                        return STATUS_UNSUCCESSFUL;
+                        return Err(());
                     }
                 }
 
@@ -142,36 +143,68 @@ pub unsafe extern "system" fn driver_entry(
                 match gd.vmm.as_mut().unwrap().start() {
                     Ok(_) => {}
                     Err(_) => {
-                        __GD.take();
-                        return STATUS_UNSUCCESSFUL;
+                        return Err(());
                     }
                 }
             }
         },
         Err(err) => {
             error!("{}", err);
-            __GD.take();
-            return STATUS_UNSUCCESSFUL;
+            return Err(());
         }
     }
 
-    // set dispatch function
-    for i in 0..IRP_MJ_MAXIMUM_FUNCTION {
-        (*driver_object).MajorFunction[i as usize] = Some(dispatch_device);
+    Ok(())
+}
+
+#[export_name = "DriverEntry"] // WDF expects a symbol with the name DriverEntry
+pub unsafe extern "system" fn driver_entry(
+    driver_object: PDRIVER_OBJECT,
+    _registry_path: PCUNICODE_STRING,
+) -> NTSTATUS {
+    info!("Driver entry");
+
+    let status = STATUS_SUCCESS;
+    let driver_object = driver_object.as_mut().unwrap();
+
+    match init(driver_object) {
+        Err(_) => {
+            clear();
+            return STATUS_UNSUCCESSFUL;
+        }
+        _ => {}
+    }
+    
+    match test() {
+        Err(_) => {
+            clear();
+            return STATUS_UNSUCCESSFUL;
+        }
+        _ => {}
     }
 
-    (*driver_object).DriverUnload = Some(driver_unload);
+    info!("{}",OS_INFO.version_name);
 
+    // set dispatch function
+    for i in 0..IRP_MJ_MAXIMUM_FUNCTION {
+        driver_object.MajorFunction[i as usize] = Some(dispatch_device);
+    }
+
+    driver_object.DriverUnload = Some(driver_unload);
     status
 }
 
-pub unsafe extern "C" fn driver_unload(_driver: *mut DRIVER_OBJECT) {
+pub unsafe fn clear(){
     // clear resources when drvier unload
     let _ = __GD.take();
     let _ = HOOK_LIST.write().take();
-    
-    info!("DriverUnload Success");
 
     // drop in end
     drop_log();
+
+    info!("DriverUnload Success");
+}
+
+pub unsafe extern "C" fn driver_unload(_driver: *mut DRIVER_OBJECT) {
+    clear();
 }

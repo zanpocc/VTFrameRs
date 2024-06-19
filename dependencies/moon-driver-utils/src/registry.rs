@@ -5,28 +5,30 @@ use alloc::{slice, string::String};
 use wdk::println;
 use wdk_sys::{ntddk::{ZwClose, ZwOpenKey, ZwQueryValueKey}, HANDLE, KEY_READ, KEY_VALUE_PARTIAL_INFORMATION, NT_SUCCESS, OBJECT_ATTRIBUTES, OBJ_CASE_INSENSITIVE, OBJ_KERNEL_HANDLE, _KEY_VALUE_INFORMATION_CLASS::KeyValuePartialInformation};
 
-use crate::{memory::StackPagePoolMemory, string::{str_to_unicode_string, u16_slice_to_string}};
+use crate::{memory::pp::PP, string::{str_to_unicode_string, u16_slice_to_string}};
 
 
 pub fn query_registry_string(key: &str,value: &str) -> String {
     let len = 1024u32;
     let registry = Registry::new(key, false);
-    let pvpi = StackPagePoolMemory::new(len);
-    if pvpi.p.is_null() {
-        return  String::new();
-    }
+    let pvpi = PP::<[u8;1024]>::new_type();
+
+    let p = match pvpi {
+        Ok(ref pp) => pp.as_ptr(),
+        Err(_) => return String::new()
+    };
 
     let mut length = 0;
 
     let status = unsafe { ZwQueryValueKey(registry.h_key, &mut str_to_unicode_string(value), KeyValuePartialInformation,
-        pvpi.p, len, &mut length) };
+        p as _, len, &mut length) };
 
     if !NT_SUCCESS(status) {
         println!("ZwQueryValueKey error");
         return String::new();
     }
 
-    let temp = unsafe { &mut *(pvpi.p as *mut KEY_VALUE_PARTIAL_INFORMATION) };
+    let temp = unsafe { &mut *(p as *mut KEY_VALUE_PARTIAL_INFORMATION) };
     let p_data = &mut temp.Data as *mut u8 as *mut u16;
 
     let len = temp.DataLength as usize / 2;

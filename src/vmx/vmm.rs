@@ -1,14 +1,14 @@
 use core::arch::global_asm;
 
-use moon_driver_utils::bitfield::set_bits_value32;
+use moon_driver_utils::{bitfield::set_bits_value32, page_align};
 use moon_instructions::{cpuidex, debugbreak, lgdt, lidt, read_msr, write_cr3, write_msr};
 use moon_log::{error, warn};
 use moon_struct::{inner::KDESCRIPTOR, msr::{self, ia32_feature_control_msr::{MSR_IA32_FEATURE_CONTROL_LOCK, MSR_IA32_FEATURE_CONTROL_VMXON}, msr_index::{MSR_FS_BASE, MSR_GS_BASE, MSR_IA32_DEBUGCTL, MSR_IA32_FEATURE_CONTROL}}};
 use wdk_sys::{ntddk::KeGetCurrentIrql, LARGE_INTEGER};
 
-use crate::{vmx::{data::{vmcs_encoding::{EXIT_QUALIFICATION, GUEST_LINEAR_ADDRESS, GUEST_PHYSICAL_ADDRESS, GUEST_RFLAGS, GUEST_RIP, GUEST_RSP, VM_EXIT_REASON}, TYPE_CR_READ, TYPE_CR_WRITE}, ins::vmcs_read}, __GD};
+use crate::{utils::utils::virtual_address_to_physical_address, vmx::{data::{vmcs_encoding::{EXIT_QUALIFICATION, GUEST_LINEAR_ADDRESS, GUEST_PHYSICAL_ADDRESS, GUEST_RFLAGS, GUEST_RIP, GUEST_RSP, VM_EXIT_REASON}, TYPE_CR_READ, TYPE_CR_WRITE}, ins::vmcs_read}, __GD};
 
-use super::{data::{interrupt_inject_info::{TYPE_LEN, TYPE_START, VALID, VECTOR_LEN, VECTOR_START}, interrupt_type::INTERRUPT_HARDWARE_EXCEPTION, mov_cr_qualification, vector_exception::VECTOR_INVALID_OPCODE_EXCEPTION, vm_call::VM_CALL_CLOSE_VT, vmcs_encoding::{CR0_READ_SHADOW, CR4_READ_SHADOW, GUEST_CR0, GUEST_CR3, GUEST_CR4, GUEST_FS_BASE, GUEST_GDTR_BASE, GUEST_GDTR_LIMIT, GUEST_GS_BASE, GUEST_IA32_DEBUGCTL, GUEST_IDTR_BASE, GUEST_IDTR_LIMIT, VM_ENTRY_INSTRUCTION_LEN, VM_ENTRY_INTR_INFO_FIELD, VM_EXIT_INSTRUCTION_LEN}}, ins::{VmxInstructionResult, __vmx_off, __vmx_vmwrite}};
+use super::{data::{interrupt_inject_info::{TYPE_LEN, TYPE_START, VALID, VECTOR_LEN, VECTOR_START}, interrupt_type::INTERRUPT_HARDWARE_EXCEPTION, mov_cr_qualification, page_hook_attrib::{PAGE_ATTRIBE_EXECUTE, PAGE_ATTRIBE_READ, PAGE_ATTRIBE_WRITE}, vector_exception::VECTOR_INVALID_OPCODE_EXCEPTION, vm_call::{self, INVEPT_ALL_CONTEXT, INVEPT_SINGLE_CONTEXT}, vmcs_encoding::{CR0_READ_SHADOW, CR4_READ_SHADOW, GUEST_CR0, GUEST_CR3, GUEST_CR4, GUEST_FS_BASE, GUEST_GDTR_BASE, GUEST_GDTR_LIMIT, GUEST_GS_BASE, GUEST_IA32_DEBUGCTL, GUEST_IDTR_BASE, GUEST_IDTR_LIMIT, VM_ENTRY_INSTRUCTION_LEN, VM_ENTRY_INTR_INFO_FIELD, VM_EXIT_INSTRUCTION_LEN}}, ept::ept::InveptDescriptor, ins::{VmxInstructionResult, __invept, __vmx_off, __vmx_vmwrite}};
 
 
 global_asm!(r#"
@@ -176,24 +176,70 @@ fn vm_exit_cpuid(guest_state: &mut GuestState) {
     let cpuinfo = cpuidex(unsafe { guest_state.guest_regs.as_ref().unwrap().rax as _ },unsafe { guest_state.guest_regs.as_ref().unwrap().rcx as _ });
 
     unsafe{
-        (*guest_state.guest_regs).rax = cpuinfo.eax as _;
-        (*guest_state.guest_regs).rbx = cpuinfo.ebx as _;
-        (*guest_state.guest_regs).rcx = cpuinfo.ecx as _;
-        (*guest_state.guest_regs).rdx = cpuinfo.edx as _;
+        let reg = guest_state.guest_regs.as_mut().unwrap();
+        reg.rax = cpuinfo.eax as _;
+        reg.rbx = cpuinfo.ebx as _;
+        reg.rcx = cpuinfo.ecx as _;
+        reg.rdx = cpuinfo.edx as _;
     }
 
     vmx_advance_eip(guest_state);
 }
 
+fn invept_single(eptp: u64) {
+    let mut descriptor = InveptDescriptor::default();
+    descriptor.ept_pointer = eptp;
+    descriptor.reserved = 0;
+    
+    __invept(INVEPT_SINGLE_CONTEXT, &mut descriptor as *mut _ as _);
+}
+
+fn invept_all() {
+    __invept(INVEPT_ALL_CONTEXT, core::ptr::null_mut());
+}
+
+fn ept_perform_page_hook(target_address: *mut u8, _hook_function_address: *mut u8, page_attribe: u64) -> Result<(),& 'static str>{
+    let _r = page_attribe & PAGE_ATTRIBE_READ;
+    let _w = page_attribe & PAGE_ATTRIBE_WRITE;
+    let _e = page_attribe & PAGE_ATTRIBE_EXECUTE;
+
+    let virtual_target = page_align!(target_address);
+
+    let physical_target = virtual_address_to_physical_address(virtual_target as _);
+    if physical_target == 0 {
+        return Err("Target address could not be mapped to physical memory");
+    }
+
+    
+
+    Ok(())
+}
+
 fn vm_exit_vmcall(guest_state: &mut GuestState) {
-    //获取第一个参数，功能类型编号
-    match unsafe { guest_state.guest_regs.as_ref().unwrap().rcx } & 0xFFFF {
-        VM_CALL_CLOSE_VT => { 
-            guest_state.exit_pending = true;
-            return;
-        }
-        _ =>{
-            error!("Unknown vmcall command");
+    unsafe {
+        let reg = guest_state.guest_regs.as_mut().unwrap();
+        let option_param1 =reg.rdx;
+        let option_param2 =reg.r8 ;
+        let option_param3 =reg.r9 ;
+
+        //获取第一个参数，功能类型编号
+        match reg.rcx & 0xFFFFFFFF {
+            vm_call::EXIT_VT => { 
+                guest_state.exit_pending = true;
+                return;
+            }
+            vm_call::PAGE_HOOK => {
+                let _ = ept_perform_page_hook(option_param1 as _,option_param2 as _,option_param3);
+            }
+            vm_call::INVEPT_SINGLE_CONTEXT => {
+                invept_single(__GD.as_mut().unwrap().vmm.as_mut().unwrap().ept_state.as_mut().unwrap().get_ept_pointer());
+            }
+            vm_call::INVEPT_ALL_CONTEXT => {
+                invept_all();
+            }
+            _ =>{
+                error!("Unknown vmcall command");
+            }
         }
     }
 

@@ -1,18 +1,19 @@
 use core::ffi::c_char;
 
-use wdk::println;
 use wdk_sys::{ntddk::{KeGetCurrentIrql, ZwCreateFile, ZwWriteFile}, FILE_APPEND_DATA, FILE_ATTRIBUTE_NORMAL, FILE_OPEN_IF, FILE_SHARE_VALID_FLAGS, FILE_SYNCHRONOUS_IO_NONALERT, IO_STATUS_BLOCK, NT_SUCCESS, OBJECT_ATTRIBUTES, OBJ_CASE_INSENSITIVE, OBJ_KERNEL_HANDLE, SYNCHRONIZE};
 
 use crate::{string::str_to_unicode_string, wrap::handle::Handle};
+
+extern crate alloc;
 
 pub struct File {
     file_handle: Handle,
 }
 
 impl File {
-    pub fn new(file: &str) -> Self {
+    pub fn new(file: &str) -> Result<Self, alloc::string::String> {
         if unsafe { KeGetCurrentIrql() } != 0 {
-            println!("Error IRQL to Access File");
+            return Err(alloc::string::String::from("Error IRQL to Access File"));
         }
 
         let mut h = Handle::default();
@@ -41,16 +42,15 @@ impl File {
         };
 
         if !NT_SUCCESS(status) {
-            println!("CreateFile Error {:X},{:X}",status, unsafe{ io_status.__bindgen_anon_1.Status });
+            return Err(alloc::format!("CreateFile Error {:X},{:X}",status, unsafe{ io_status.__bindgen_anon_1.Status }));
         }   
         
-        Self { file_handle: h }
+        Ok(Self { file_handle: h })
     }
 
-    pub fn write(&mut self,text: *mut c_char,length: u32) {
+    pub fn write(&mut self,text: *mut c_char,length: u32) -> Result<(),alloc::string::String> {
         if self.file_handle.is_null(){
-            println!("file_handle is null");
-            return;
+            return Err(alloc::string::String::from("file_handle is null"));
         }
 
         let mut io_status = IO_STATUS_BLOCK::default();
@@ -69,9 +69,10 @@ impl File {
         };
 
         if !NT_SUCCESS(status) {
-            println!("ZwWriteFile Error {:X},{:X}",status, unsafe{ io_status.__bindgen_anon_1.Status });
+            return Err(alloc::string::String::from(alloc::format!("ZwWriteFile Error {:X},{:X}",status, unsafe{ io_status.__bindgen_anon_1.Status })));
         }
 
+        Ok(())
     }
 }
 
