@@ -22,9 +22,13 @@ pub fn check_vmx_cpu_support() -> Result<(), &'static str> {
     if (feature_control_msr & ia32_feature_control_msr::MSR_IA32_FEATURE_CONTROL_LOCK) == 0 {
         feature_control_msr |= ia32_feature_control_msr::MSR_IA32_FEATURE_CONTROL_LOCK;
         feature_control_msr |= ia32_feature_control_msr::MSR_IA32_FEATURE_CONTROL_VMXON;
-        write_msr(msr::msr_index::MSR_IA32_FEATURE_CONTROL, feature_control_msr);
+        write_msr(
+            msr::msr_index::MSR_IA32_FEATURE_CONTROL,
+            feature_control_msr,
+        );
         info!("Start set feature control MSR");
-    } else if (feature_control_msr & ia32_feature_control_msr::MSR_IA32_FEATURE_CONTROL_VMXON) == 0 {
+    } else if (feature_control_msr & ia32_feature_control_msr::MSR_IA32_FEATURE_CONTROL_VMXON) == 0
+    {
         // if vmxon reset,vmxon will gp outside smx operation
         return Err("BIOS dont enable virtualazation");
     }

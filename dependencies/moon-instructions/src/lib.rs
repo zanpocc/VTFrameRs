@@ -6,11 +6,9 @@ use moon_struct::{cpuid::CPUID, inner::KDESCRIPTOR};
 macro_rules! debugbreak {
     () => {
         unsafe {
-            core::arch::asm!(
-                "int 3"
-            );
+            core::arch::asm!("int 3");
         }
-    }
+    };
 }
 
 use core::arch::asm;
@@ -47,7 +45,7 @@ pub fn read_msr(msr: u32) -> u64 {
     result
 }
 
-pub fn write_msr(msr: u32,value: u64) {
+pub fn write_msr(msr: u32, value: u64) {
     unsafe {
         asm!(
             "rdmsr",
@@ -57,7 +55,6 @@ pub fn write_msr(msr: u32,value: u64) {
         );
     }
 }
-
 
 pub fn read_cr0() -> u64 {
     let mut result: u64;
@@ -171,7 +168,7 @@ pub fn lidt(addr: &KDESCRIPTOR) {
     }
 }
 
-pub fn stosq(destination: *mut u64,value: u64,count: u64) {
+pub fn stosq(destination: *mut u64, value: u64, count: u64) {
     unsafe {
         asm!(
             "rep stosq",
@@ -184,7 +181,7 @@ pub fn stosq(destination: *mut u64,value: u64,count: u64) {
 }
 
 // find bit value eq 1 in binary range mask
-pub fn bit_scan_forward64(index: *mut u32,mask: u64) {
+pub fn bit_scan_forward64(index: *mut u32, mask: u64) {
     unsafe {
         asm!(
             "bsf rax,rax",
@@ -196,7 +193,7 @@ pub fn bit_scan_forward64(index: *mut u32,mask: u64) {
     }
 }
 
-pub fn cpuidex(eax: u32,ecx:u32) -> CPUID {
+pub fn cpuidex(eax: u32, ecx: u32) -> CPUID {
     let mut result = CPUID::default();
 
     // !!! do not modify regist ebx anyway
@@ -223,5 +220,3 @@ pub fn cpuidex(eax: u32,ecx:u32) -> CPUID {
 
     result
 }
-
-

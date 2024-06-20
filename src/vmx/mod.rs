@@ -1,9 +1,8 @@
 pub mod check;
-pub mod vmx;
 pub mod data;
-pub mod vmm;
 pub mod ept;
-
+pub mod vmm;
+pub mod vmx;
 
 pub mod ins {
     use core::{arch::asm, ffi::c_void};
@@ -14,7 +13,7 @@ pub mod ins {
 
     use super::data::vmcs_encoding::VM_INSTRUCTION_ERROR;
 
-    #[derive(Debug,PartialEq, Eq)]
+    #[derive(Debug, PartialEq, Eq)]
     pub enum VmxInstructionResult {
         VmxSuccess = 0,
         VmxFailValid = 1,
@@ -34,14 +33,14 @@ pub mod ins {
 
     // success on rflags.cf = 0
     pub fn __vmx_on(value: *mut u64) -> VmxInstructionResult {
-        let mut result:u64;
+        let mut result: u64;
         unsafe {
             asm!(
                 "xor rax,rax",
                 "vmxon [rcx]",
                 "setc al",
-	            "setz cl",
-	            "adc al,cl",
+                "setz cl",
+                "adc al,cl",
                 in("rcx") value,
                 out("rax") result,
                 options(nostack, nomem)
@@ -51,14 +50,14 @@ pub mod ins {
     }
 
     pub fn __vmx_off() -> VmxInstructionResult {
-        let mut result:u64;
+        let mut result: u64;
         unsafe {
             asm!(
                 "xor rax,rax",
                 "vmxoff",
                 "setc al",
-	            "setz cl",
-	            "adc al,cl",
+                "setz cl",
+                "adc al,cl",
                 out("rax") result,
                 options(nostack, nomem)
             );
@@ -68,32 +67,32 @@ pub mod ins {
     }
 
     pub fn __vmx_vmclear(value: *mut u64) -> VmxInstructionResult {
-        let mut result:u64;
+        let mut result: u64;
         unsafe {
             asm!(
                 "xor rax,rax",
                 "vmclear [rcx]",
                 "setc al",
-	            "setz cl",
-	            "adc al,cl",
+                "setz cl",
+                "adc al,cl",
                 in("rcx") value,
                 out("rax") result,
                 options(nostack, nomem)
             );
         }
-        
+
         VmxInstructionResult::from(result)
     }
 
     pub fn __vmx_vmptrld(value: *mut u64) -> VmxInstructionResult {
-        let mut result:u64;
+        let mut result: u64;
         unsafe {
             asm!(
                 "xor rax,rax",
                 "vmptrld [rcx]",
                 "setc al",
-	            "setz cl",
-	            "adc al,cl",
+                "setz cl",
+                "adc al,cl",
                 in("rcx") value,
                 out("rax") result,
                 options(nostack, nomem)
@@ -104,14 +103,14 @@ pub mod ins {
     }
 
     pub fn __vmx_vmlaunch() -> VmxInstructionResult {
-        let mut result:u64;
+        let mut result: u64;
         unsafe {
             asm!(
                 "xor rax,rax",
                 "vmlaunch",
                 "setc al",
-	            "setz cl",
-	            "adc al,cl",
+                "setz cl",
+                "adc al,cl",
                 out("rax") result,
                 options(nostack, nomem)
             );
@@ -120,15 +119,15 @@ pub mod ins {
         VmxInstructionResult::from(result)
     }
 
-    pub fn __vmx_vmwrite(field: u64,value: u64) -> VmxInstructionResult {
-        let mut result:u64;
+    pub fn __vmx_vmwrite(field: u64, value: u64) -> VmxInstructionResult {
+        let mut result: u64;
         unsafe {
             asm!(
                 "xor rax,rax",
                 "vmwrite rcx,rdx",
                 "setc al",
-	            "setz cl",
-	            "adc al,cl",
+                "setz cl",
+                "adc al,cl",
                 in("rcx") field,
                 in("rdx") value,
                 out("rax") result,
@@ -139,43 +138,43 @@ pub mod ins {
         if result != 0 {
             error!("__vmx_vmwrite error");
         }
-        
+
         VmxInstructionResult::from(result)
     }
 
-    pub fn __vmx_vmread(field: u64,value: &mut u64) -> VmxInstructionResult {
-        let mut result:u64;
+    pub fn __vmx_vmread(field: u64, value: &mut u64) -> VmxInstructionResult {
+        let mut result: u64;
         unsafe {
             asm!(
                 "xor rax,rax",
                 "vmread [rdx],rcx",
                 "setc al",
-	            "setz cl",
-	            "adc al,cl",
+                "setz cl",
+                "adc al,cl",
                 in("rcx") field,
                 in("rdx") value,
                 out("rax") result,
                 options(nostack, nomem)
             );
         }
-        
+
         VmxInstructionResult::from(result)
     }
 
     pub fn vmcs_read(field: u64) -> u64 {
-        let mut v:u64 = 0;
-        let r = __vmx_vmread(field,&mut v);
+        let mut v: u64 = 0;
+        let r = __vmx_vmread(field, &mut v);
         match r {
             VmxInstructionResult::VmxSuccess => {
                 return v;
-            },
+            }
             _ => {
                 return 0;
             }
         }
     }
 
-    pub fn __vmx_vmcall(vmcall_no: u64,arg1: u64,arg2: u64,arg3: u64) -> VmxInstructionResult {
+    pub fn __vmx_vmcall(vmcall_no: u64, arg1: u64, arg2: u64, arg3: u64) -> VmxInstructionResult {
         unsafe {
             asm!(
                 "xor rax,rax",
@@ -187,36 +186,36 @@ pub mod ins {
                 options(nostack, nomem)
             );
         }
-        
+
         VmxInstructionResult::VmxSuccess
     }
 
-    pub fn __invept(invept_type: u64,ept_ctx: *mut c_void) -> VmxInstructionResult {
-        let mut result:u64;
+    pub fn __invept(invept_type: u64, ept_ctx: *mut c_void) -> VmxInstructionResult {
+        let mut result: u64;
         unsafe {
             asm!(
                 "xor rax,rax",
                 "invept rcx, [rdx]",
                 "setc al",
-	            "setz cl",
-	            "adc al,cl",
+                "setz cl",
+                "adc al,cl",
                 in("rcx") invept_type,
                 in("rdx") ept_ctx,
                 out("rax") result,
                 options(nostack, nomem)
             );
         }
-        
+
         VmxInstructionResult::from(result)
     }
 
     pub fn __vmx_read_error() -> &'static str {
-        let mut error_code:u64 = 0;
-        match __vmx_vmread(VM_INSTRUCTION_ERROR,&mut error_code) {
+        let mut error_code: u64 = 0;
+        match __vmx_vmread(VM_INSTRUCTION_ERROR, &mut error_code) {
             VmxInstructionResult::VmxSuccess => {
-                info!("Read ins error code success:{}",error_code);
+                info!("Read ins error code success:{}", error_code);
                 return VM_INSTRUCTION_ERROR_MAP[error_code as usize];
-            },
+            }
             _ => {
                 return "error to read vmlaunch error code";
             }

@@ -1,10 +1,18 @@
-pub mod pp;
 pub mod npp;
+pub mod pp;
 pub mod utils;
 
-use core::{alloc::Layout, fmt, ops::{Deref, DerefMut}, ptr::NonNull};
+use core::{
+    alloc::Layout,
+    fmt,
+    ops::{Deref, DerefMut},
+    ptr::NonNull,
+};
 
-use wdk_sys::{ntddk::{memset, ExAllocatePool, ExFreePool}, POOL_TYPE};
+use wdk_sys::{
+    ntddk::{memset, ExAllocatePool, ExFreePool},
+    POOL_TYPE,
+};
 
 #[derive(Debug)]
 pub struct AllocationError;
@@ -14,7 +22,6 @@ impl fmt::Display for AllocationError {
         write!(f, "Memory allocation failed")
     }
 }
-
 
 pub struct PoolMemory<T> {
     ptr: NonNull<T>,
@@ -27,37 +34,35 @@ impl<T> PoolMemory<T> {
     fn allocate_memory(value: Option<T>, pool_type: POOL_TYPE) -> Result<Self, AllocationError> {
         // Calculate the layout for the type T
         let layout = Layout::new::<T>();
-        
+
         // Allocate memory using ExAllocatePool
-        let ptr = unsafe { 
-            ExAllocatePool(pool_type, layout.size() as _) as *mut T 
-        };
+        let ptr = unsafe { ExAllocatePool(pool_type, layout.size() as _) as *mut T };
 
         let data = NonNull::new(ptr).ok_or(AllocationError)?;
 
         // Write the value into the allocated memory
-        unsafe { 
+        unsafe {
             memset(ptr as _, 0, layout.size() as _);
             if let Some(v) = value {
                 core::ptr::write(ptr, v);
             }
         };
-        
+
         Ok(Self { ptr: data })
     }
 
-    pub fn new(value: T,pool_type: POOL_TYPE) -> Result<Self, AllocationError> {
-        Self::allocate_memory(Some(value),pool_type)
+    pub fn new(value: T, pool_type: POOL_TYPE) -> Result<Self, AllocationError> {
+        Self::allocate_memory(Some(value), pool_type)
     }
 
     pub fn new_type(pool_type: POOL_TYPE) -> Result<Self, AllocationError> {
-        Self::allocate_memory(None,pool_type)
+        Self::allocate_memory(None, pool_type)
     }
 
     fn drop_internel(&self) {
         // Explicitly drop the value first
         unsafe { core::ptr::drop_in_place(self.as_raw()) };
-                
+
         // Free the memory using ExFreePool
         unsafe { ExFreePool(self.as_raw() as *mut _) };
     }
@@ -65,7 +70,6 @@ impl<T> PoolMemory<T> {
     pub fn as_raw(&self) -> *mut T {
         self.ptr.as_ptr()
     }
-
 }
 
 impl<T> Deref for PoolMemory<T> {

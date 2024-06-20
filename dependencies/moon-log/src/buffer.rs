@@ -99,8 +99,6 @@ impl CircularLogBuffer {
     }
 
     pub fn persist_to_file(&mut self) {
-        let _ = self.lock.lock();
-
         if self.offset == 0 {
             println!("persist_to_file do nothing");
             return;
@@ -132,8 +130,6 @@ impl CircularLogBuffer {
     }
 
     pub fn write_log(&mut self, args: core::fmt::Arguments) {
-        let _ = self.lock.lock();
-
         let buff = CString::new(alloc::format!("{args}"))
             .expect("CString should be able to be created from a String.");
 

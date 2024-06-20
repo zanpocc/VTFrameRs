@@ -1,10 +1,10 @@
 #![no_std]
 
-pub mod msr;
-pub mod eflags;
+pub mod constant;
 pub mod cpuid;
+pub mod eflags;
 pub mod inner;
 pub mod m;
-pub mod x86;
+pub mod msr;
 pub mod pe;
-pub mod constant;
+pub mod x86;

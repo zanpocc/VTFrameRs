@@ -1,13 +1,15 @@
-
 use alloc::boxed::Box;
 use moon_log::info;
-use wdk_sys::{ntddk::IoDeleteDevice, DEVICE_OBJECT, IRP, IRP_MJ_CLEANUP, IRP_MJ_CLOSE, IRP_MJ_CREATE, NTSTATUS, STATUS_SUCCESS, STATUS_UNSUCCESSFUL};
+use wdk_sys::{
+    ntddk::IoDeleteDevice, DEVICE_OBJECT, IRP, IRP_MJ_CLEANUP, IRP_MJ_CLOSE, IRP_MJ_CREATE,
+    NTSTATUS, STATUS_SUCCESS, STATUS_UNSUCCESSFUL,
+};
 
 use crate::inner::io_get_current_irp_stack_location;
 
 use super::io_request::IoRequest;
 
-pub struct Device{
+pub struct Device {
     pub raw: *mut DEVICE_OBJECT,
 }
 
@@ -38,9 +40,7 @@ impl Drop for Device {
 
 impl Device {
     pub unsafe fn from_raw(raw: *mut DEVICE_OBJECT) -> Self {
-        Self{
-            raw,
-        }
+        Self { raw }
     }
 
     pub unsafe fn as_raw(&self) -> *const DEVICE_OBJECT {
@@ -56,42 +56,28 @@ impl Device {
     }
 
     pub(crate) fn extension(&self) -> &DeviceExtension {
-        unsafe {
-            &*((*self.raw).DeviceExtension as *const DeviceExtension)
-        }
+        unsafe { &*((*self.raw).DeviceExtension as *const DeviceExtension) }
     }
-    
+
     pub(crate) fn extension_mut(&self) -> &mut DeviceExtension {
-        unsafe {
-            &mut *((*self.raw).DeviceExtension as *mut DeviceExtension)
-        }
+        unsafe { &mut *((*self.raw).DeviceExtension as *mut DeviceExtension) }
     }
-    
+
     pub(crate) fn vtable(&self) -> &DeviceOperationsImpl {
-        unsafe {
-            &*(self.extension().vtable as *const _)
-        }
+        unsafe { &*(self.extension().vtable as *const _) }
     }
-    
+
     pub fn data<T: DeviceOperations>(&self) -> &T {
-        unsafe {
-            &*(self.extension().data as *const T)
-        }
+        unsafe { &*(self.extension().data as *const T) }
     }
-    
+
     pub fn data_mut<T: DeviceOperations>(&self) -> &mut T {
-        unsafe {
-            &mut *(self.extension().data as *mut T)
-        }
+        unsafe { &mut *(self.extension().data as *mut T) }
     }
 }
 
-
 // dispatch entrypoint
-pub extern "C" fn dispatch_device(
-    device: *mut DEVICE_OBJECT,
-    irp: *mut IRP,
-) -> NTSTATUS {
+pub extern "C" fn dispatch_device(device: *mut DEVICE_OBJECT, irp: *mut IRP) -> NTSTATUS {
     let stack_location = unsafe { &*io_get_current_irp_stack_location(irp) };
     let device = unsafe { Device::from_raw(device) };
     let vtable = device.vtable();
@@ -108,23 +94,23 @@ pub extern "C" fn dispatch_device(
 
 // default dispatch operation
 pub trait DeviceOperations {
-    fn create(&mut self, _device: &Device, request: &IoRequest) -> Result<(), & 'static str> {
+    fn create(&mut self, _device: &Device, request: &IoRequest) -> Result<(), &'static str> {
         request.complete(Ok(0));
         Ok(())
     }
 
-    fn close(&mut self, _device: &Device, request: &IoRequest) -> Result<(), & 'static str> {
+    fn close(&mut self, _device: &Device, request: &IoRequest) -> Result<(), &'static str> {
         request.complete(Ok(0));
         Ok(())
     }
 
-    fn cleanup(&mut self, _device: &Device, request: &IoRequest) -> Result<(), & 'static str> {
+    fn cleanup(&mut self, _device: &Device, request: &IoRequest) -> Result<(), &'static str> {
         request.complete(Ok(0));
 
         Ok(())
     }
 
-    fn others(&mut self, _device: &Device, request: &IoRequest) -> Result<(), & 'static str> {
+    fn others(&mut self, _device: &Device, request: &IoRequest) -> Result<(), &'static str> {
         request.complete(Ok(0));
 
         Ok(())
@@ -161,9 +147,7 @@ extern "C" fn dispatch_callback<T: DeviceOperations>(
 }
 
 // free memory when device drop
-extern fn release_callback<T: DeviceOperations>(
-    device: *mut DEVICE_OBJECT,
-) {
+extern "C" fn release_callback<T: DeviceOperations>(device: *mut DEVICE_OBJECT) {
     unsafe {
         let extension = (*device).DeviceExtension as *mut DeviceExtension;
 
@@ -179,18 +163,18 @@ extern fn release_callback<T: DeviceOperations>(
 #[repr(C)]
 pub struct DeviceExtension {
     pub(crate) vtable: *const DeviceOperationsImpl, // virtual table function point
-    pub(crate) data: *mut cty::c_void, // user data
+    pub(crate) data: *mut cty::c_void,              // user data
 }
 
 #[repr(C)]
 pub struct DeviceOperationsImpl {
-    dispatch: Option<extern "C" fn (*mut DEVICE_OBJECT, *mut IRP, u8) -> NTSTATUS>,
-    release: Option<extern "C" fn (*mut DEVICE_OBJECT)>,
+    dispatch: Option<extern "C" fn(*mut DEVICE_OBJECT, *mut IRP, u8) -> NTSTATUS>,
+    release: Option<extern "C" fn(*mut DEVICE_OBJECT)>,
 }
 
 // stcuct of vtable
 pub(crate) struct DeviceOperationsVtable<T>(core::marker::PhantomData<T>);
-impl <T: DeviceOperations> DeviceOperationsVtable<T> {
+impl<T: DeviceOperations> DeviceOperationsVtable<T> {
     pub(crate) const VTABLE: DeviceOperationsImpl = DeviceOperationsImpl {
         dispatch: Some(dispatch_callback::<T>),
         release: Some(release_callback::<T>),

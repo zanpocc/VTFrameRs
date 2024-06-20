@@ -37,7 +37,9 @@
 use core::alloc::{GlobalAlloc, Layout};
 
 use wdk_sys::{
-    ntddk::{ExAllocatePool, ExFreePool}, SIZE_T, _POOL_TYPE::NonPagedPoolExecute
+    ntddk::{ExAllocatePool, ExFreePool},
+    SIZE_T,
+    _POOL_TYPE::NonPagedPoolExecute,
 };
 
 /// Allocator implementation to use with `#[global_allocator]` to allow use of

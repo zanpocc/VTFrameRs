@@ -5,7 +5,7 @@ use super::AllocationError;
 use super::PoolMemory;
 
 pub struct NPP<T> {
-    m: PoolMemory<T>
+    m: PoolMemory<T>,
 }
 
 unsafe impl<T: Send> Send for NPP<T> {}
@@ -14,7 +14,7 @@ unsafe impl<T: Sync> Sync for NPP<T> {}
 impl<T> NPP<T> {
     pub fn new(value: T) -> Result<Self, AllocationError> {
         let p = PoolMemory::new(value, NonPagedPool)?;
-        Ok(Self{m: p})
+        Ok(Self { m: p })
     }
 
     pub fn new_type() -> Result<Self, AllocationError> {

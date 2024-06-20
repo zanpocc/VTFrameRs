@@ -1,66 +1,62 @@
-
-
 /// VMX MSR - Basic VMX information.
 pub mod vmx_basic {
     use moon_struct::RT_BIT_64;
 
     /** Whether 'true' VMX controls MSRs are supported for handling of default1 class
- *  bits in VMX control MSRs. */
-    pub const VMX_BASIC_TRUE_CTLS:u64 = RT_BIT_64!(55);
+     *  bits in VMX control MSRs. */
+    pub const VMX_BASIC_TRUE_CTLS: u64 = RT_BIT_64!(55);
 }
-
-
 
 /// Processor-based VM-execution controls.
 pub mod vmx_cpu_based_controls {
     use moon_struct::RT_BIT_32;
-    
+
     /** VM-exit as soon as RFLAGS.IF=1 and no blocking is active. */
-    pub const VMX_PROC_CTLS_INT_WINDOW_EXIT:u32 = RT_BIT_32!(2);
+    pub const VMX_PROC_CTLS_INT_WINDOW_EXIT: u32 = RT_BIT_32!(2);
     /** Use timestamp counter offset. */
-    pub const VMX_PROC_CTLS_USE_TSC_OFFSETTING:u32 = RT_BIT_32!(3);
+    pub const VMX_PROC_CTLS_USE_TSC_OFFSETTING: u32 = RT_BIT_32!(3);
     /** VM-exit when executing the HLT instruction. */
-    pub const VMX_PROC_CTLS_HLT_EXIT:u32 = RT_BIT_32!(7);
+    pub const VMX_PROC_CTLS_HLT_EXIT: u32 = RT_BIT_32!(7);
     /** VM-exit when executing the INVLPG instruction. */
-    pub const VMX_PROC_CTLS_INVLPG_EXIT:u32 = RT_BIT_32!(9);
+    pub const VMX_PROC_CTLS_INVLPG_EXIT: u32 = RT_BIT_32!(9);
     /** VM-exit when executing the MWAIT instruction. */
-    pub const VMX_PROC_CTLS_MWAIT_EXIT:u32 = RT_BIT_32!(10);
+    pub const VMX_PROC_CTLS_MWAIT_EXIT: u32 = RT_BIT_32!(10);
     /** VM-exit when executing the RDPMC instruction. */
-    pub const VMX_PROC_CTLS_RDPMC_EXIT:u32 = RT_BIT_32!(11);
+    pub const VMX_PROC_CTLS_RDPMC_EXIT: u32 = RT_BIT_32!(11);
     /** VM-exit when executing the RDTSC/RDTSCP instruction. */
-    pub const VMX_PROC_CTLS_RDTSC_EXIT:u32 = RT_BIT_32!(12);
+    pub const VMX_PROC_CTLS_RDTSC_EXIT: u32 = RT_BIT_32!(12);
     /** VM-exit when executing the MOV to CR3 instruction. (forced to 1 on the
      *  'first' VT-x capable CPUs; this actually includes the newest Nehalem CPUs) */
-    pub const VMX_PROC_CTLS_CR3_LOAD_EXIT:u32 = RT_BIT_32!(15);
+    pub const VMX_PROC_CTLS_CR3_LOAD_EXIT: u32 = RT_BIT_32!(15);
     /** VM-exit when executing the MOV from CR3 instruction. (forced to 1 on the
      *  'first' VT-x capable CPUs; this actually includes the newest Nehalem CPUs) */
-    pub const VMX_PROC_CTLS_CR3_STORE_EXIT:u32 = RT_BIT_32!(16);
+    pub const VMX_PROC_CTLS_CR3_STORE_EXIT: u32 = RT_BIT_32!(16);
     /** Whether the secondary processor based VM-execution controls are used. */
-    pub const VMX_PROC_CTLS_USE_TERTIARY_CTLS:u32 = RT_BIT_32!(17);
+    pub const VMX_PROC_CTLS_USE_TERTIARY_CTLS: u32 = RT_BIT_32!(17);
     /** VM-exit on CR8 loads. */
-    pub const VMX_PROC_CTLS_CR8_LOAD_EXIT:u32 = RT_BIT_32!(19);
+    pub const VMX_PROC_CTLS_CR8_LOAD_EXIT: u32 = RT_BIT_32!(19);
     /** VM-exit on CR8 stores. */
-    pub const VMX_PROC_CTLS_CR8_STORE_EXIT:u32 = RT_BIT_32!(20);
+    pub const VMX_PROC_CTLS_CR8_STORE_EXIT: u32 = RT_BIT_32!(20);
     /** Use TPR shadow. */
-    pub const VMX_PROC_CTLS_USE_TPR_SHADOW:u32 = RT_BIT_32!(21);
+    pub const VMX_PROC_CTLS_USE_TPR_SHADOW: u32 = RT_BIT_32!(21);
     /** VM-exit when virtual NMI blocking is disabled. */
-    pub const VMX_PROC_CTLS_NMI_WINDOW_EXIT:u32 = RT_BIT_32!(22);
+    pub const VMX_PROC_CTLS_NMI_WINDOW_EXIT: u32 = RT_BIT_32!(22);
     /** VM-exit when executing a MOV DRx instruction. */
-    pub const VMX_PROC_CTLS_MOV_DR_EXIT:u32 = RT_BIT_32!(23);
+    pub const VMX_PROC_CTLS_MOV_DR_EXIT: u32 = RT_BIT_32!(23);
     /** VM-exit when executing IO instructions. */
-    pub const VMX_PROC_CTLS_UNCOND_IO_EXIT:u32 = RT_BIT_32!(24);
+    pub const VMX_PROC_CTLS_UNCOND_IO_EXIT: u32 = RT_BIT_32!(24);
     /** Use IO bitmaps. */
-    pub const VMX_PROC_CTLS_USE_IO_BITMAPS:u32 = RT_BIT_32!(25);
+    pub const VMX_PROC_CTLS_USE_IO_BITMAPS: u32 = RT_BIT_32!(25);
     /** Monitor trap flag. */
-    pub const VMX_PROC_CTLS_MONITOR_TRAP_FLAG:u32 = RT_BIT_32!(27);
+    pub const VMX_PROC_CTLS_MONITOR_TRAP_FLAG: u32 = RT_BIT_32!(27);
     /** Use MSR bitmaps. */
-    pub const VMX_PROC_CTLS_USE_MSR_BITMAPS:u32 = RT_BIT_32!(28);
+    pub const VMX_PROC_CTLS_USE_MSR_BITMAPS: u32 = RT_BIT_32!(28);
     /** VM-exit when executing the MONITOR instruction. */
-    pub const VMX_PROC_CTLS_MONITOR_EXIT:u32 = RT_BIT_32!(29);
+    pub const VMX_PROC_CTLS_MONITOR_EXIT: u32 = RT_BIT_32!(29);
     /** VM-exit when executing the PAUSE instruction. */
-    pub const VMX_PROC_CTLS_PAUSE_EXIT:u32 = RT_BIT_32!(30);
+    pub const VMX_PROC_CTLS_PAUSE_EXIT: u32 = RT_BIT_32!(30);
     /** Whether the secondary processor based VM-execution controls are used. */
-    pub const VMX_PROC_CTLS_USE_SECONDARY_CTLS:u32 = RT_BIT_32!(31);
+    pub const VMX_PROC_CTLS_USE_SECONDARY_CTLS: u32 = RT_BIT_32!(31);
 }
 
 /// Secondary Processor-based VM-execution controls.
@@ -68,61 +64,61 @@ pub mod vmx_secondary_cpu_based_controls {
     use moon_struct::RT_BIT_32;
 
     /** Virtualize APIC accesses. */
-    pub const VMX_PROC_CTLS2_VIRT_APIC_ACCESS:u32 = RT_BIT_32!(0);
+    pub const VMX_PROC_CTLS2_VIRT_APIC_ACCESS: u32 = RT_BIT_32!(0);
     /** EPT supported/enabled. */
-    pub const VMX_PROC_CTLS2_EPT:u32 = RT_BIT_32!(1);
+    pub const VMX_PROC_CTLS2_EPT: u32 = RT_BIT_32!(1);
     /** Descriptor table instructions cause VM-exits. */
-    pub const VMX_PROC_CTLS2_DESC_TABLE_EXIT:u32 = RT_BIT_32!(2);
+    pub const VMX_PROC_CTLS2_DESC_TABLE_EXIT: u32 = RT_BIT_32!(2);
     /** RDTSCP supported/enabled. */
-    pub const VMX_PROC_CTLS2_RDTSCP:u32 = RT_BIT_32!(3);
+    pub const VMX_PROC_CTLS2_RDTSCP: u32 = RT_BIT_32!(3);
     /** Virtualize x2APIC mode. */
-    pub const VMX_PROC_CTLS2_VIRT_X2APIC_MODE:u32 = RT_BIT_32!(4);
+    pub const VMX_PROC_CTLS2_VIRT_X2APIC_MODE: u32 = RT_BIT_32!(4);
     /** VPID supported/enabled. */
-    pub const VMX_PROC_CTLS2_VPID:u32 = RT_BIT_32!(5);
+    pub const VMX_PROC_CTLS2_VPID: u32 = RT_BIT_32!(5);
     /** VM-exit when executing the WBINVD instruction. */
-    pub const VMX_PROC_CTLS2_WBINVD_EXIT:u32 = RT_BIT_32!(6);
+    pub const VMX_PROC_CTLS2_WBINVD_EXIT: u32 = RT_BIT_32!(6);
     /** Unrestricted guest execution. */
-    pub const VMX_PROC_CTLS2_UNRESTRICTED_GUEST:u32 = RT_BIT_32!(7);
+    pub const VMX_PROC_CTLS2_UNRESTRICTED_GUEST: u32 = RT_BIT_32!(7);
     /** APIC register virtualization. */
-    pub const VMX_PROC_CTLS2_APIC_REG_VIRT:u32 = RT_BIT_32!(8);
+    pub const VMX_PROC_CTLS2_APIC_REG_VIRT: u32 = RT_BIT_32!(8);
     /** Virtual-interrupt delivery. */
-    pub const VMX_PROC_CTLS2_VIRT_INT_DELIVERY:u32 = RT_BIT_32!(9);
+    pub const VMX_PROC_CTLS2_VIRT_INT_DELIVERY: u32 = RT_BIT_32!(9);
     /** A specified number of pause loops cause a VM-exit. */
-    pub const VMX_PROC_CTLS2_PAUSE_LOOP_EXIT:u32 = RT_BIT_32!(10);
+    pub const VMX_PROC_CTLS2_PAUSE_LOOP_EXIT: u32 = RT_BIT_32!(10);
     /** VM-exit when executing RDRAND instructions. */
-    pub const VMX_PROC_CTLS2_RDRAND_EXIT:u32 = RT_BIT_32!(11);
+    pub const VMX_PROC_CTLS2_RDRAND_EXIT: u32 = RT_BIT_32!(11);
     /** Enables INVPCID instructions. */
-    pub const VMX_PROC_CTLS2_INVPCID:u32 = RT_BIT_32!(12);
+    pub const VMX_PROC_CTLS2_INVPCID: u32 = RT_BIT_32!(12);
     /** Enables VMFUNC instructions. */
-    pub const VMX_PROC_CTLS2_VMFUNC:u32 = RT_BIT_32!(13);
+    pub const VMX_PROC_CTLS2_VMFUNC: u32 = RT_BIT_32!(13);
     /** Enables VMCS shadowing. */
-    pub const VMX_PROC_CTLS2_VMCS_SHADOWING:u32 = RT_BIT_32!(14);
+    pub const VMX_PROC_CTLS2_VMCS_SHADOWING: u32 = RT_BIT_32!(14);
     /** Enables ENCLS VM-exits. */
-    pub const VMX_PROC_CTLS2_ENCLS_EXIT:u32 = RT_BIT_32!(15);
+    pub const VMX_PROC_CTLS2_ENCLS_EXIT: u32 = RT_BIT_32!(15);
     /** VM-exit when executing RDSEED. */
-    pub const VMX_PROC_CTLS2_RDSEED_EXIT:u32 = RT_BIT_32!(16);
+    pub const VMX_PROC_CTLS2_RDSEED_EXIT: u32 = RT_BIT_32!(16);
     /** Enables page-modification logging. */
-    pub const VMX_PROC_CTLS2_PML:u32 = RT_BIT_32!(17);
+    pub const VMX_PROC_CTLS2_PML: u32 = RT_BIT_32!(17);
     /** Controls whether EPT-violations may cause \#VE instead of exits. */
-    pub const VMX_PROC_CTLS2_EPT_XCPT_VE:u32 = RT_BIT_32!(18);
+    pub const VMX_PROC_CTLS2_EPT_XCPT_VE: u32 = RT_BIT_32!(18);
     /** Conceal VMX non-root operation from Intel processor trace (PT). */
-    pub const VMX_PROC_CTLS2_CONCEAL_VMX_FROM_PT:u32 = RT_BIT_32!(19);
+    pub const VMX_PROC_CTLS2_CONCEAL_VMX_FROM_PT: u32 = RT_BIT_32!(19);
     /** Enables XSAVES/XRSTORS instructions. */
-    pub const VMX_PROC_CTLS2_XSAVES_XRSTORS:u32 = RT_BIT_32!(20);
+    pub const VMX_PROC_CTLS2_XSAVES_XRSTORS: u32 = RT_BIT_32!(20);
     /** Enables supervisor/user mode based EPT execute permission for linear
      *  addresses. */
-    pub const VMX_PROC_CTLS2_MODE_BASED_EPT_PERM:u32 = RT_BIT_32!(22);
+    pub const VMX_PROC_CTLS2_MODE_BASED_EPT_PERM: u32 = RT_BIT_32!(22);
     /** Enables EPT write permissions to be specified at granularity of 128 bytes. */
-    pub const VMX_PROC_CTLS2_SPP_EPT:u32 = RT_BIT_32!(23);
+    pub const VMX_PROC_CTLS2_SPP_EPT: u32 = RT_BIT_32!(23);
     /** Intel PT output addresses are treated as guest-physical addresses and
      *  translated using EPT. */
-    pub const VMX_PROC_CTLS2_PT_EPT:u32 = RT_BIT_32!(24);
+    pub const VMX_PROC_CTLS2_PT_EPT: u32 = RT_BIT_32!(24);
     /** Use TSC scaling. */
-    pub const VMX_PROC_CTLS2_TSC_SCALING:u32 = RT_BIT_32!(25);
+    pub const VMX_PROC_CTLS2_TSC_SCALING: u32 = RT_BIT_32!(25);
     /** Enables TPAUSE, UMONITOR and UMWAIT instructions. */
-    pub const VMX_PROC_CTLS2_USER_WAIT_PAUSE:u32 = RT_BIT_32!(26);
+    pub const VMX_PROC_CTLS2_USER_WAIT_PAUSE: u32 = RT_BIT_32!(26);
     /** Enables consulting ENCLV-exiting bitmap when executing ENCLV. */
-    pub const VMX_PROC_CTLS2_ENCLV_EXIT:u32 = RT_BIT_32!(28);
+    pub const VMX_PROC_CTLS2_ENCLV_EXIT: u32 = RT_BIT_32!(28);
 }
 
 /// VM-entry controls.
@@ -131,29 +127,29 @@ pub mod vmx_vm_enter_controls {
 
     /** Load guest debug controls (dr7 & IA32_DEBUGCTL_MSR) (forced to 1 on the
      *  'first' VT-x capable CPUs; this actually includes the newest Nehalem CPUs) */
-    pub const VMX_ENTRY_CTLS_LOAD_DEBUG:u32 = RT_BIT_32!(2);
+    pub const VMX_ENTRY_CTLS_LOAD_DEBUG: u32 = RT_BIT_32!(2);
     /** 64-bit guest mode. Must be 0 for CPUs that don't support AMD64. */
-    pub const VMX_ENTRY_CTLS_IA32E_MODE_GUEST:u32 = RT_BIT_32!(9);
+    pub const VMX_ENTRY_CTLS_IA32E_MODE_GUEST: u32 = RT_BIT_32!(9);
     /** In SMM mode after VM-entry. */
-    pub const VMX_ENTRY_CTLS_ENTRY_TO_SMM:u32 = RT_BIT_32!(10);
+    pub const VMX_ENTRY_CTLS_ENTRY_TO_SMM: u32 = RT_BIT_32!(10);
     /** Disable dual treatment of SMI and SMM; must be zero for VM-entry outside of SMM. */
-    pub const VMX_ENTRY_CTLS_DEACTIVATE_DUAL_MON:u32 = RT_BIT_32!(11);
+    pub const VMX_ENTRY_CTLS_DEACTIVATE_DUAL_MON: u32 = RT_BIT_32!(11);
     /** Whether the guest IA32_PERF_GLOBAL_CTRL MSR is loaded on VM-entry. */
-    pub const VMX_ENTRY_CTLS_LOAD_PERF_MSR:u32 = RT_BIT_32!(13);
+    pub const VMX_ENTRY_CTLS_LOAD_PERF_MSR: u32 = RT_BIT_32!(13);
     /** Whether the guest IA32_PAT MSR is loaded on VM-entry. */
-    pub const VMX_ENTRY_CTLS_LOAD_PAT_MSR:u32 = RT_BIT_32!(14);
+    pub const VMX_ENTRY_CTLS_LOAD_PAT_MSR: u32 = RT_BIT_32!(14);
     /** Whether the guest IA32_EFER MSR is loaded on VM-entry. */
-    pub const VMX_ENTRY_CTLS_LOAD_EFER_MSR:u32 = RT_BIT_32!(15);
+    pub const VMX_ENTRY_CTLS_LOAD_EFER_MSR: u32 = RT_BIT_32!(15);
     /** Whether the guest IA32_BNDCFGS MSR is loaded on VM-entry. */
-    pub const VMX_ENTRY_CTLS_LOAD_BNDCFGS_MSR:u32 = RT_BIT_32!(16);
+    pub const VMX_ENTRY_CTLS_LOAD_BNDCFGS_MSR: u32 = RT_BIT_32!(16);
     /** Whether to conceal VMX from Intel PT (Processor Trace). */
-    pub const VMX_ENTRY_CTLS_CONCEAL_VMX_FROM_PT:u32 = RT_BIT_32!(17);
+    pub const VMX_ENTRY_CTLS_CONCEAL_VMX_FROM_PT: u32 = RT_BIT_32!(17);
     /** Whether the guest IA32_RTIT MSR is loaded on VM-entry. */
-    pub const VMX_ENTRY_CTLS_LOAD_RTIT_CTL_MSR:u32 = RT_BIT_32!(18);
+    pub const VMX_ENTRY_CTLS_LOAD_RTIT_CTL_MSR: u32 = RT_BIT_32!(18);
     /** Whether the guest CET-related MSRs and SPP are loaded on VM-entry. */
-    pub const VMX_ENTRY_CTLS_LOAD_CET_STATE:u32 = RT_BIT_32!(20);
+    pub const VMX_ENTRY_CTLS_LOAD_CET_STATE: u32 = RT_BIT_32!(20);
     /** Whether the guest IA32_PKRS MSR is loaded on VM-entry. */
-    pub const VMX_ENTRY_CTLS_LOAD_PKRS_MSR:u32 = RT_BIT_32!(22);
+    pub const VMX_ENTRY_CTLS_LOAD_PKRS_MSR: u32 = RT_BIT_32!(22);
 }
 
 /// VM-exit controls.
@@ -162,39 +158,38 @@ pub mod vmx_vm_exit_controls {
 
     /** Save guest debug controls (dr7 & IA32_DEBUGCTL_MSR) (forced to 1 on the
      *  'first' VT-x capable CPUs; this actually includes the newest Nehalem CPUs) */
-    pub const VMX_EXIT_CTLS_SAVE_DEBUG:u32 = RT_BIT_32!(2);
+    pub const VMX_EXIT_CTLS_SAVE_DEBUG: u32 = RT_BIT_32!(2);
     /** Return to long mode after a VM-exit. */
-    pub const VMX_EXIT_CTLS_HOST_ADDR_SPACE_SIZE:u32 = RT_BIT_32!(9);
+    pub const VMX_EXIT_CTLS_HOST_ADDR_SPACE_SIZE: u32 = RT_BIT_32!(9);
     /** Whether the host IA32_PERF_GLOBAL_CTRL MSR is loaded on VM-exit. */
-    pub const VMX_EXIT_CTLS_LOAD_PERF_MSR:u32 = RT_BIT_32!(12);
+    pub const VMX_EXIT_CTLS_LOAD_PERF_MSR: u32 = RT_BIT_32!(12);
     /** Acknowledge external interrupts with the irq controller if one caused a VM-exit. */
-    pub const VMX_EXIT_CTLS_ACK_EXT_INT:u32 = RT_BIT_32!(15);
+    pub const VMX_EXIT_CTLS_ACK_EXT_INT: u32 = RT_BIT_32!(15);
     /** Whether the guest IA32_PAT MSR is saved on VM-exit. */
-    pub const VMX_EXIT_CTLS_SAVE_PAT_MSR:u32 = RT_BIT_32!(18);
+    pub const VMX_EXIT_CTLS_SAVE_PAT_MSR: u32 = RT_BIT_32!(18);
     /** Whether the host IA32_PAT MSR is loaded on VM-exit. */
-    pub const VMX_EXIT_CTLS_LOAD_PAT_MSR:u32 = RT_BIT_32!(19);
+    pub const VMX_EXIT_CTLS_LOAD_PAT_MSR: u32 = RT_BIT_32!(19);
     /** Whether the guest IA32_EFER MSR is saved on VM-exit. */
-    pub const VMX_EXIT_CTLS_SAVE_EFER_MSR:u32 = RT_BIT_32!(20);
+    pub const VMX_EXIT_CTLS_SAVE_EFER_MSR: u32 = RT_BIT_32!(20);
     /** Whether the host IA32_EFER MSR is loaded on VM-exit. */
-    pub const VMX_EXIT_CTLS_LOAD_EFER_MSR:u32 = RT_BIT_32!(21);
+    pub const VMX_EXIT_CTLS_LOAD_EFER_MSR: u32 = RT_BIT_32!(21);
     /** Whether the value of the VMX preemption timer is saved on every VM-exit. */
-    pub const VMX_EXIT_CTLS_SAVE_PREEMPT_TIMER:u32 = RT_BIT_32!(22);
+    pub const VMX_EXIT_CTLS_SAVE_PREEMPT_TIMER: u32 = RT_BIT_32!(22);
     /** Whether IA32_BNDCFGS MSR is cleared on VM-exit. */
-    pub const VMX_EXIT_CTLS_CLEAR_BNDCFGS_MSR:u32 = RT_BIT_32!(23);
+    pub const VMX_EXIT_CTLS_CLEAR_BNDCFGS_MSR: u32 = RT_BIT_32!(23);
     /** Whether to conceal VMX from Intel PT. */
-    pub const VMX_EXIT_CTLS_CONCEAL_VMX_FROM_PT:u32 = RT_BIT_32!(24);
+    pub const VMX_EXIT_CTLS_CONCEAL_VMX_FROM_PT: u32 = RT_BIT_32!(24);
     /** Whether IA32_RTIT_CTL MSR is cleared on VM-exit. */
-    pub const VMX_EXIT_CTLS_CLEAR_RTIT_CTL_MSR:u32 = RT_BIT_32!(25);
+    pub const VMX_EXIT_CTLS_CLEAR_RTIT_CTL_MSR: u32 = RT_BIT_32!(25);
     /** Whether CET-related MSRs and SPP are loaded on VM-exit. */
-    pub const VMX_EXIT_CTLS_LOAD_CET_STATE:u32 = RT_BIT_32!(28);
+    pub const VMX_EXIT_CTLS_LOAD_CET_STATE: u32 = RT_BIT_32!(28);
     /** Whether the host IA32_PKRS MSR is loaded on VM-exit. */
-    pub const VMX_EXIT_CTLS_LOAD_PKRS_MSR:u32 = RT_BIT_32!(29);
+    pub const VMX_EXIT_CTLS_LOAD_PKRS_MSR: u32 = RT_BIT_32!(29);
     /** Whether the host IA32_PERF_GLOBAL_CTRL MSR is saved on VM-exit. */
-    pub const VMX_EXIT_CTLS_SAVE_PERF_MSR:u32 = RT_BIT_32!(30);
+    pub const VMX_EXIT_CTLS_SAVE_PERF_MSR: u32 = RT_BIT_32!(30);
     /** Whether secondary VM-exit controls are used. */
-    pub const VMX_EXIT_CTLS_USE_SECONDARY_CTLS:u32 = RT_BIT_32!(31);
+    pub const VMX_EXIT_CTLS_USE_SECONDARY_CTLS: u32 = RT_BIT_32!(31);
 }
-
 
 pub mod pml4e {
     use moon_struct::RT_BIT_64;
@@ -229,7 +224,7 @@ pub mod pml2e_2mb {
 
     pub const MEMORY_TYPE_START: u64 = 3;
     pub const MEMORY_TYPE_LEN: u64 = 3;
-    
+
     pub const LARGET_PAGE: u64 = RT_BIT_64!(7);
 
     pub const PAGE_FRAME_NUMBER_START: u64 = 21;
@@ -237,36 +232,33 @@ pub mod pml2e_2mb {
 }
 
 // pte
-pub mod ptee {
-
-}
-
+pub mod ptee {}
 
 pub mod ept_pointer {
     use moon_struct::RT_BIT_64;
 
     // EPT Paging structure memory type (0 for UC)
-    pub const MEMORY_TYPE_START:u64 = 0;
-    pub const MEMORY_TYPE_LEN:u64 = 3;
+    pub const MEMORY_TYPE_START: u64 = 0;
+    pub const MEMORY_TYPE_LEN: u64 = 3;
 
     // PageWalkLength
-    pub const PAGE_WALK_LENGTH_START:u64 = 3;
-    pub const PAGE_WALK_LENGTH_LEN:u64 = 3;
+    pub const PAGE_WALK_LENGTH_START: u64 = 3;
+    pub const PAGE_WALK_LENGTH_LEN: u64 = 3;
 
     // EnableAccessAndDirtyFlags
     pub const ENABLE_ACCESS_AND_DIRTY_FLAGS: u64 = RT_BIT_64!(6);
 
     // Physical address of the EPT PML4 table
-    pub const PHYS_ADDR_START:u64 = 12;
-    pub const PHYS_ADDR_LEN:u64 = 36;
+    pub const PHYS_ADDR_START: u64 = 12;
+    pub const PHYS_ADDR_LEN: u64 = 36;
 }
 
 #[allow(dead_code)]
 pub(crate) mod vmcs_encoding {
-    pub const VIRTUAL_PROCESSOR_ID: u64 = 0x00000000;  // 16-Bit Control Field
+    pub const VIRTUAL_PROCESSOR_ID: u64 = 0x00000000; // 16-Bit Control Field
     pub const POSTED_INTERRUPT_NOTIFICATION: u64 = 0x00000002;
     pub const EPTP_INDEX: u64 = 0x00000004;
-    pub const GUEST_ES_SELECTOR: u64 = 0x00000800;  // 16-Bit Guest-State Fields
+    pub const GUEST_ES_SELECTOR: u64 = 0x00000800; // 16-Bit Guest-State Fields
     pub const GUEST_CS_SELECTOR: u64 = 0x00000802;
     pub const GUEST_SS_SELECTOR: u64 = 0x00000804;
     pub const GUEST_DS_SELECTOR: u64 = 0x00000806;
@@ -275,14 +267,14 @@ pub(crate) mod vmcs_encoding {
     pub const GUEST_LDTR_SELECTOR: u64 = 0x0000080c;
     pub const GUEST_TR_SELECTOR: u64 = 0x0000080e;
     pub const GUEST_INTERRUPT_STATUS: u64 = 0x00000810;
-    pub const HOST_ES_SELECTOR: u64 = 0x00000c00;  // 16-Bit Host-State Fields
+    pub const HOST_ES_SELECTOR: u64 = 0x00000c00; // 16-Bit Host-State Fields
     pub const HOST_CS_SELECTOR: u64 = 0x00000c02;
     pub const HOST_SS_SELECTOR: u64 = 0x00000c04;
     pub const HOST_DS_SELECTOR: u64 = 0x00000c06;
     pub const HOST_FS_SELECTOR: u64 = 0x00000c08;
     pub const HOST_GS_SELECTOR: u64 = 0x00000c0a;
     pub const HOST_TR_SELECTOR: u64 = 0x00000c0c;
-    pub const IO_BITMAP_A: u64 = 0x00002000;  // 64-Bit Control Fields
+    pub const IO_BITMAP_A: u64 = 0x00002000; // 64-Bit Control Fields
     pub const IO_BITMAP_A_HIGH: u64 = 0x00002001;
     pub const IO_BITMAP_B: u64 = 0x00002002;
     pub const IO_BITMAP_B_HIGH: u64 = 0x00002003;
@@ -302,7 +294,7 @@ pub(crate) mod vmcs_encoding {
     pub const VIRTUAL_APIC_PAGE_ADDR_HIGH: u64 = 0x00002013;
     pub const APIC_ACCESS_ADDR: u64 = 0x00002014;
     pub const APIC_ACCESS_ADDR_HIGH: u64 = 0x00002015;
-    
+
     pub const EPT_POINTER: u64 = 0x0000201a;
     pub const EPT_POINTER_HIGH: u64 = 0x0000201b;
     pub const EOI_EXIT_BITMAP_0: u64 = 0x0000201c;
@@ -323,9 +315,9 @@ pub(crate) mod vmcs_encoding {
     pub const VIRTUALIZATION_EXCEPTION_INFO_ADDDRESS_HIGH: u64 = 0x0000202b;
     pub const XSS_EXITING_BITMAP: u64 = 0x0000202c;
     pub const XSS_EXITING_BITMAP_HIGH: u64 = 0x0000202d;
-    pub const GUEST_PHYSICAL_ADDRESS: u64 = 0x00002400;  // 64-Bit Read-Only Data Field
+    pub const GUEST_PHYSICAL_ADDRESS: u64 = 0x00002400; // 64-Bit Read-Only Data Field
     pub const GUEST_PHYSICAL_ADDRESS_HIGH: u64 = 0x00002401;
-    pub const VMCS_LINK_POINTER: u64 = 0x00002800;  // 64-Bit Guest-State Fields
+    pub const VMCS_LINK_POINTER: u64 = 0x00002800; // 64-Bit Guest-State Fields
     pub const VMCS_LINK_POINTER_HIGH: u64 = 0x00002801;
     pub const GUEST_IA32_DEBUGCTL: u64 = 0x00002802;
     pub const GUEST_IA32_DEBUGCTL_HIGH: u64 = 0x00002803;
@@ -344,13 +336,13 @@ pub(crate) mod vmcs_encoding {
     pub const GUEST_PDPTR2_HIGH: u64 = 0x0000280f;
     pub const GUEST_PDPTR3: u64 = 0x00002810;
     pub const GUEST_PDPTR3_HIGH: u64 = 0x00002811;
-    pub const HOST_IA32_PAT: u64 = 0x00002c00;  // 64-Bit Host-State Fields
+    pub const HOST_IA32_PAT: u64 = 0x00002c00; // 64-Bit Host-State Fields
     pub const HOST_IA32_PAT_HIGH: u64 = 0x00002c01;
     pub const HOST_IA32_EFER: u64 = 0x00002c02;
     pub const HOST_IA32_EFER_HIGH: u64 = 0x00002c03;
     pub const HOST_IA32_PERF_GLOBAL_CTRL: u64 = 0x00002c04;
     pub const HOST_IA32_PERF_GLOBAL_CTRL_HIGH: u64 = 0x00002c05;
-    pub const PIN_BASED_VM_EXEC_CONTROL: u64 = 0x00004000;  // 32-Bit Control Fields
+    pub const PIN_BASED_VM_EXEC_CONTROL: u64 = 0x00004000; // 32-Bit Control Fields
     pub const CPU_BASED_VM_EXEC_CONTROL: u64 = 0x00004002;
 
     pub const EXCEPTION_BITMAP: u64 = 0x00004004;
@@ -369,7 +361,7 @@ pub(crate) mod vmcs_encoding {
     pub const SECONDARY_VM_EXEC_CONTROL: u64 = 0x0000401e;
     pub const PLE_GAP: u64 = 0x00004020;
     pub const PLE_WINDOW: u64 = 0x00004022;
-    pub const VM_INSTRUCTION_ERROR: u64 = 0x00004400;  // 32-Bit Read-Only Data Fields
+    pub const VM_INSTRUCTION_ERROR: u64 = 0x00004400; // 32-Bit Read-Only Data Fields
     pub const VM_EXIT_REASON: u64 = 0x00004402;
     pub const VM_EXIT_INTR_INFO: u64 = 0x00004404;
     pub const VM_EXIT_INTR_ERROR_CODE: u64 = 0x00004406;
@@ -378,8 +370,7 @@ pub(crate) mod vmcs_encoding {
     pub const VM_EXIT_INSTRUCTION_LEN: u64 = 0x0000440c;
     pub const VMX_INSTRUCTION_INFO: u64 = 0x0000440e;
 
-
-    pub const GUEST_ES_LIMIT: u64 = 0x00004800;  // 32-Bit Guest-State Fields
+    pub const GUEST_ES_LIMIT: u64 = 0x00004800; // 32-Bit Guest-State Fields
     pub const GUEST_CS_LIMIT: u64 = 0x00004802;
     pub const GUEST_SS_LIMIT: u64 = 0x00004804;
     pub const GUEST_DS_LIMIT: u64 = 0x00004806;
@@ -402,8 +393,8 @@ pub(crate) mod vmcs_encoding {
     pub const GUEST_SMBASE: u64 = 0x00004828;
     pub const GUEST_SYSENTER_CS: u64 = 0x0000482a;
     pub const VMX_PREEMPTION_TIMER_VALUE: u64 = 0x0000482e;
-    pub const HOST_IA32_SYSENTER_CS: u64 = 0x00004c00;  // 32-Bit Host-State Field
-    pub const CR0_GUEST_HOST_MASK: u64 = 0x00006000;    // Natural-Width Control Fields
+    pub const HOST_IA32_SYSENTER_CS: u64 = 0x00004c00; // 32-Bit Host-State Field
+    pub const CR0_GUEST_HOST_MASK: u64 = 0x00006000; // Natural-Width Control Fields
     pub const CR4_GUEST_HOST_MASK: u64 = 0x00006002;
     pub const CR0_READ_SHADOW: u64 = 0x00006004;
     pub const CR4_READ_SHADOW: u64 = 0x00006006;
@@ -412,13 +403,13 @@ pub(crate) mod vmcs_encoding {
     pub const CR3_TARGET_VALUE2: u64 = 0x0000600c;
     pub const CR3_TARGET_VALUE3: u64 = 0x0000600e;
 
-    pub const EXIT_QUALIFICATION: u64 = 0x00006400;  // Natural-Width Read-Only Data Fields
+    pub const EXIT_QUALIFICATION: u64 = 0x00006400; // Natural-Width Read-Only Data Fields
     pub const IO_RCX: u64 = 0x00006402;
     pub const IO_RSI: u64 = 0x00006404;
     pub const IO_RDI: u64 = 0x00006406;
     pub const IO_RIP: u64 = 0x00006408;
     pub const GUEST_LINEAR_ADDRESS: u64 = 0x0000640a;
-    pub const GUEST_CR0: u64 = 0x00006800;  // Natural-Width Guest-State Fields
+    pub const GUEST_CR0: u64 = 0x00006800; // Natural-Width Guest-State Fields
     pub const GUEST_CR3: u64 = 0x00006802;
     pub const GUEST_CR4: u64 = 0x00006804;
     pub const GUEST_ES_BASE: u64 = 0x00006806;
@@ -438,7 +429,7 @@ pub(crate) mod vmcs_encoding {
     pub const GUEST_PENDING_DBG_EXCEPTIONS: u64 = 0x00006822;
     pub const GUEST_SYSENTER_ESP: u64 = 0x00006824;
     pub const GUEST_SYSENTER_EIP: u64 = 0x00006826;
-    pub const HOST_CR0: u64 = 0x00006c00;  // Natural-Width Host-State Fields
+    pub const HOST_CR0: u64 = 0x00006c00; // Natural-Width Host-State Fields
     pub const HOST_CR3: u64 = 0x00006c02;
     pub const HOST_CR4: u64 = 0x00006c04;
     pub const HOST_FS_BASE: u64 = 0x00006c06;
@@ -453,7 +444,7 @@ pub(crate) mod vmcs_encoding {
 }
 
 #[allow(dead_code)]
-pub(crate) mod exit_reason{
+pub(crate) mod exit_reason {
     pub const EXIT_REASON_EXCEPTION_NMI: u16 = 0;
     pub const EXIT_REASON_EXTERNAL_INTERRUPT: u16 = 1;
     pub const EXIT_REASON_TRIPLE_FAULT: u16 = 2;
@@ -521,9 +512,7 @@ pub(crate) mod exit_reason{
     pub const EXIT_REASON_XRSTORS: u16 = 64;
 
     pub const VMX_MAX_GUEST_VMEXIT: u16 = 65;
-
 }
-
 
 pub const VM_INSTRUCTION_ERROR_MAP: [&str; 28] = [
     "Success",
@@ -557,50 +546,50 @@ pub const VM_INSTRUCTION_ERROR_MAP: [&str; 28] = [
 ];
 
 pub mod interrupt_type {
-    pub const INTERRUPT_EXTERNAL: u32             = 0;
-    pub const INTERRUPT_NMI: u32                  = 2;
-    pub const INTERRUPT_HARDWARE_EXCEPTION: u32   = 3;
-    pub const INTERRUPT_SOFTWARE: u32             = 4;
+    pub const INTERRUPT_EXTERNAL: u32 = 0;
+    pub const INTERRUPT_NMI: u32 = 2;
+    pub const INTERRUPT_HARDWARE_EXCEPTION: u32 = 3;
+    pub const INTERRUPT_SOFTWARE: u32 = 4;
     pub const INTERRUPT_PRIVILIGED_EXCEPTION: u32 = 5;
-    pub const INTERRUPT_SOFTWARE_EXCEPTION: u32   = 6;
-    pub const INTERRUPT_OTHER_EVENT: u32          = 7;
+    pub const INTERRUPT_SOFTWARE_EXCEPTION: u32 = 6;
+    pub const INTERRUPT_OTHER_EVENT: u32 = 7;
 }
 
 pub mod vector_exception {
-    pub const VECTOR_DIVIDE_ERROR_EXCEPTION:u8          = 0;
-    pub const VECTOR_DEBUG_EXCEPTION:u8                 = 1;
-    pub const VECTOR_NMI_INTERRUPT:u8                   = 2;
-    pub const VECTOR_BREAKPOINT_EXCEPTION:u8            = 3;
-    pub const VECTOR_OVERFLOW_EXCEPTION:u8              = 4;
-    pub const VECTOR_BOUND_EXCEPTION:u8                 = 5;
-    pub const VECTOR_INVALID_OPCODE_EXCEPTION:u8        = 6;
-    pub const VECTOR_DEVICE_NOT_AVAILABLE_EXCEPTION:u8  = 7;
-    pub const VECTOR_DOUBLE_FAULT_EXCEPTION:u8          = 8;
-    pub const VECTOR_COPROCESSOR_SEGMENT_OVERRUN:u8     = 9;
-    pub const VECTOR_INVALID_TSS_EXCEPTION:u8           = 10;
-    pub const VECTOR_SEGMENT_NOT_PRESENT:u8             = 11;
-    pub const VECTOR_STACK_FAULT_EXCEPTION:u8           = 12;
-    pub const VECTOR_GENERAL_PROTECTION_EXCEPTION:u8    = 13;
-    pub const VECTOR_PAGE_FAULT_EXCEPTION:u8            = 14;
-    pub const VECTOR_X87_FLOATING_POINT_ERROR:u8        = 16;
-    pub const VECTOR_ALIGNMENT_CHECK_EXCEPTION:u8       = 17;
-    pub const VECTOR_MACHINE_CHECK_EXCEPTION:u8         = 18;
-    pub const VECTOR_SIMD_FLOATING_POINT_EXCEPTION:u8   = 19;
-    pub const VECTOR_VIRTUALIZATION_EXCEPTION:u8        = 20;
+    pub const VECTOR_DIVIDE_ERROR_EXCEPTION: u8 = 0;
+    pub const VECTOR_DEBUG_EXCEPTION: u8 = 1;
+    pub const VECTOR_NMI_INTERRUPT: u8 = 2;
+    pub const VECTOR_BREAKPOINT_EXCEPTION: u8 = 3;
+    pub const VECTOR_OVERFLOW_EXCEPTION: u8 = 4;
+    pub const VECTOR_BOUND_EXCEPTION: u8 = 5;
+    pub const VECTOR_INVALID_OPCODE_EXCEPTION: u8 = 6;
+    pub const VECTOR_DEVICE_NOT_AVAILABLE_EXCEPTION: u8 = 7;
+    pub const VECTOR_DOUBLE_FAULT_EXCEPTION: u8 = 8;
+    pub const VECTOR_COPROCESSOR_SEGMENT_OVERRUN: u8 = 9;
+    pub const VECTOR_INVALID_TSS_EXCEPTION: u8 = 10;
+    pub const VECTOR_SEGMENT_NOT_PRESENT: u8 = 11;
+    pub const VECTOR_STACK_FAULT_EXCEPTION: u8 = 12;
+    pub const VECTOR_GENERAL_PROTECTION_EXCEPTION: u8 = 13;
+    pub const VECTOR_PAGE_FAULT_EXCEPTION: u8 = 14;
+    pub const VECTOR_X87_FLOATING_POINT_ERROR: u8 = 16;
+    pub const VECTOR_ALIGNMENT_CHECK_EXCEPTION: u8 = 17;
+    pub const VECTOR_MACHINE_CHECK_EXCEPTION: u8 = 18;
+    pub const VECTOR_SIMD_FLOATING_POINT_EXCEPTION: u8 = 19;
+    pub const VECTOR_VIRTUALIZATION_EXCEPTION: u8 = 20;
 }
 
 pub mod interrupt_inject_info {
     use moon_struct::RT_BIT_32;
 
-    pub const VECTOR_START:u32 = 0;
-    pub const VECTOR_LEN:u32 = 8;
+    pub const VECTOR_START: u32 = 0;
+    pub const VECTOR_LEN: u32 = 8;
 
-    pub const TYPE_START:u32 = 8;
-    pub const TYPE_LEN:u32 = 3;
+    pub const TYPE_START: u32 = 8;
+    pub const TYPE_LEN: u32 = 3;
 
-    pub const DELIVER_ERROR_CODE:u32 = RT_BIT_32!(11);
-    
-    pub const VALID:u32 = RT_BIT_32!(31);
+    pub const DELIVER_ERROR_CODE: u32 = RT_BIT_32!(11);
+
+    pub const VALID: u32 = RT_BIT_32!(31);
 }
 
 #[allow(unused)]
@@ -614,17 +603,15 @@ pub(crate) mod mov_cr_qualification {
     pub const LMSW_SOURCE_DATA_MASK: u32 = 0xFFFF0000;
 }
 
-pub mod ept_memory_type{
+pub mod ept_memory_type {
     // Memory Types
-    pub const MEMORY_TYPE_UNCACHEABLE:u8     = 0x00000000;
-    pub const MEMORY_TYPE_WRITE_COMBINING:u8 = 0x00000001;
-    pub const MEMORY_TYPE_WRITE_THROUGH:u8   = 0x00000004;
-    pub const MEMORY_TYPE_WRITE_PROTECTED:u8 = 0x00000005;
-    pub const MEMORY_TYPE_WRITE_BACK:u8      = 0x00000006;
-    pub const MEMORY_TYPE_INVALID:u8         = 0x000000FF;
+    pub const MEMORY_TYPE_UNCACHEABLE: u8 = 0x00000000;
+    pub const MEMORY_TYPE_WRITE_COMBINING: u8 = 0x00000001;
+    pub const MEMORY_TYPE_WRITE_THROUGH: u8 = 0x00000004;
+    pub const MEMORY_TYPE_WRITE_PROTECTED: u8 = 0x00000005;
+    pub const MEMORY_TYPE_WRITE_BACK: u8 = 0x00000006;
+    pub const MEMORY_TYPE_INVALID: u8 = 0x000000FF;
 }
-
-
 
 //CR
 pub const TYPE_CR_WRITE: u32 = 0;
@@ -635,7 +622,7 @@ pub const TYPE_LMSW: u32 = 3;
 pub const TYPE_DR_WRITE: u32 = 0;
 pub const TYPE_DR_READ: u32 = 1;
 
-pub(crate) mod vm_call{
+pub(crate) mod vm_call {
     // close vt
     pub const EXIT_VT: u64 = 1;
 
@@ -645,8 +632,8 @@ pub(crate) mod vm_call{
     pub const PAGE_HOOK: u64 = 110;
 }
 
-pub(crate) mod page_hook_attrib{
+pub(crate) mod page_hook_attrib {
     pub const PAGE_ATTRIBE_READ: u64 = 1;
-    pub const PAGE_ATTRIBE_WRITE: u64 = 1<<1;
-    pub const PAGE_ATTRIBE_EXECUTE: u64 = 1<<2;
+    pub const PAGE_ATTRIBE_WRITE: u64 = 1 << 1;
+    pub const PAGE_ATTRIBE_EXECUTE: u64 = 1 << 2;
 }

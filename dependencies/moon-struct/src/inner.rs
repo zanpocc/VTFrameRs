@@ -2,8 +2,6 @@
 
 use wdk_sys::{_CONTEXT__bindgen_ty_1, CONTEXT, M128A, USHORT};
 
-
-
 #[repr(C)]
 #[derive(Default)]
 pub struct KDESCRIPTOR {
@@ -49,7 +47,6 @@ pub struct KSPECIAL_REGISTERS {
 
 #[allow(non_camel_case_types)]
 pub type PKSPECIAL_REGISTERS = *mut KSPECIAL_REGISTERS;
-
 
 #[repr(C)]
 #[derive(Default)]
@@ -113,10 +110,8 @@ pub struct KPROCESSOR_STATE {
 #[allow(non_camel_case_types)]
 pub type PKPROCESSOR_STATE = *mut KPROCESSOR_STATE;
 
-
-
 #[repr(C)]
-#[derive(Copy,Clone)]
+#[derive(Copy, Clone)]
 #[allow(non_camel_case_types)]
 #[allow(non_snake_case)]
 pub struct GDTENTRY64_ACCESS_RIGHTS_BYTES {
@@ -127,27 +122,27 @@ pub struct GDTENTRY64_ACCESS_RIGHTS_BYTES {
 }
 
 #[repr(C)]
-#[derive(Copy,Clone)]
+#[derive(Copy, Clone)]
 pub union GDTENTRY64_ACCESS_RIGHTS {
     pub access_rights: u32,
     pub bytes: GDTENTRY64_ACCESS_RIGHTS_BYTES,
     pub bits: u16,
-} 
+}
 
 #[repr(C)]
-#[derive(Copy,Clone)]
+#[derive(Copy, Clone)]
 #[allow(non_camel_case_types)]
 pub struct GdtEntry64 {
     pub selector: USHORT,
     pub limit: u32,
     pub access_rights: GDTENTRY64_ACCESS_RIGHTS,
-    pub base: u64
+    pub base: u64,
 }
 
 #[repr(C)]
-#[derive(Copy,Clone)]
+#[derive(Copy, Clone)]
 #[allow(non_camel_case_types)]
-pub struct KGDTENTRY64_U_BYTES{
+pub struct KGDTENTRY64_U_BYTES {
     pub BaseMiddle: u8,
     pub Flags1: u8,
     pub Flags2: u8,
@@ -155,16 +150,16 @@ pub struct KGDTENTRY64_U_BYTES{
 }
 
 #[repr(C)]
-#[derive(Copy,Clone)]
+#[derive(Copy, Clone)]
 pub union KGDTENTRY64_U {
     pub bytes: KGDTENTRY64_U_BYTES,
     pub bits: u32,
 }
 
 #[repr(C)]
-#[derive(Copy,Clone)]
+#[derive(Copy, Clone)]
 #[allow(non_camel_case_types)]
-pub struct KGDTENTRY64_A{
+pub struct KGDTENTRY64_A {
     pub limit_low: u16,
     pub base_low: u16,
     pub u: KGDTENTRY64_U,
@@ -173,7 +168,7 @@ pub struct KGDTENTRY64_A{
 }
 
 #[repr(C)]
-#[derive(Copy,Clone)]
+#[derive(Copy, Clone)]
 pub union KGDTENTRY64 {
     pub alignment: u64,
     pub dummy: KGDTENTRY64_A,

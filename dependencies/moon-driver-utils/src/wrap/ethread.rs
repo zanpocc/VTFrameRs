@@ -1,7 +1,11 @@
 use core::ops::{Deref, DerefMut};
 
 use wdk::println;
-use wdk_sys::{ntddk::{ObReferenceObjectByHandle, ObfDereferenceObject}, NT_SUCCESS, PsThreadType, PETHREAD, PHANDLE, THREAD_ALL_ACCESS, _MODE::KernelMode};
+use wdk_sys::{
+    ntddk::{ObReferenceObjectByHandle, ObfDereferenceObject},
+    PsThreadType, NT_SUCCESS, PETHREAD, PHANDLE, THREAD_ALL_ACCESS,
+    _MODE::KernelMode,
+};
 
 pub struct Ethread {
     raw: PETHREAD,
@@ -9,22 +13,26 @@ pub struct Ethread {
 
 impl Ethread {
     pub fn from_raw(raw: PETHREAD) -> Self {
-        Self { 
-            raw: raw 
-        }
+        Self { raw: raw }
     }
 
     pub fn from_handle(h: PHANDLE) -> Self {
-        let mut r = Self { 
-            raw: core::ptr::null_mut()
+        let mut r = Self {
+            raw: core::ptr::null_mut(),
         };
 
-         unsafe { 
-            let status = ObReferenceObjectByHandle(*h as _,THREAD_ALL_ACCESS,
-                *PsThreadType,KernelMode as _,r.as_mut_raw() as _,core::ptr::null_mut());
+        unsafe {
+            let status = ObReferenceObjectByHandle(
+                *h as _,
+                THREAD_ALL_ACCESS,
+                *PsThreadType,
+                KernelMode as _,
+                r.as_mut_raw() as _,
+                core::ptr::null_mut(),
+            );
 
             if !NT_SUCCESS(status) {
-                println!("ObReferenceObjectByHandle thread error:{}",status);
+                println!("ObReferenceObjectByHandle thread error:{}", status);
             }
         }
 
@@ -34,12 +42,13 @@ impl Ethread {
     pub fn as_mut_raw(&mut self) -> *mut PETHREAD {
         &mut self.raw
     }
-
 }
 
-impl Default for Ethread{
+impl Default for Ethread {
     fn default() -> Self {
-        Self { raw: core::ptr::null_mut() }
+        Self {
+            raw: core::ptr::null_mut(),
+        }
     }
 }
 
@@ -59,8 +68,8 @@ impl DerefMut for Ethread {
 
 impl Drop for Ethread {
     fn drop(&mut self) {
-        if !self.raw.is_null(){
-            unsafe { 
+        if !self.raw.is_null() {
+            unsafe {
                 ObfDereferenceObject(*self.as_mut_raw() as _);
             }
         }

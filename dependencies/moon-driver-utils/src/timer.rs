@@ -1,10 +1,15 @@
-
 use core::ffi::c_void;
 
 use wdk::println;
-use wdk_sys::{ntddk::{ExAllocatePool, ExFreePool, KeCancelTimer, KeInitializeDpc, KeInitializeTimerEx, KeInsertQueueDpc, KeSetTimerEx}, KDPC, KTIMER, LARGE_INTEGER, PKDEFERRED_ROUTINE, _POOL_TYPE::NonPagedPool, _TIMER_TYPE::SynchronizationTimer};
-
-
+use wdk_sys::{
+    ntddk::{
+        ExAllocatePool, ExFreePool, KeCancelTimer, KeInitializeDpc, KeInitializeTimerEx,
+        KeInsertQueueDpc, KeSetTimerEx,
+    },
+    KDPC, KTIMER, LARGE_INTEGER, PKDEFERRED_ROUTINE,
+    _POOL_TYPE::NonPagedPool,
+    _TIMER_TYPE::SynchronizationTimer,
+};
 
 pub struct Timer {
     timer: *mut KTIMER,
@@ -12,29 +17,31 @@ pub struct Timer {
     started: bool,
 }
 
-
-
 impl Timer {
-    pub fn new(callback: PKDEFERRED_ROUTINE,arg: *mut c_void) -> Self {
-        let mut r = Timer { timer: core::ptr::null_mut(), dpc: core::ptr::null_mut(), started: false };
+    pub fn new(callback: PKDEFERRED_ROUTINE, arg: *mut c_void) -> Self {
+        let mut r = Timer {
+            timer: core::ptr::null_mut(),
+            dpc: core::ptr::null_mut(),
+            started: false,
+        };
 
-        unsafe{
+        unsafe {
             r.timer = ExAllocatePool(NonPagedPool, core::mem::size_of::<KTIMER>() as _) as _;
             r.dpc = ExAllocatePool(NonPagedPool, core::mem::size_of::<KDPC>() as _) as _;
         }
 
-        println!("{:p},{:p}",r.timer,r.dpc);
+        println!("{:p},{:p}", r.timer, r.dpc);
 
-        unsafe { 
+        unsafe {
             KeInitializeDpc(r.dpc, callback, arg);
             KeInsertQueueDpc(r.dpc, core::ptr::null_mut(), core::ptr::null_mut());
-            KeInitializeTimerEx(r.timer,SynchronizationTimer);
+            KeInitializeTimerEx(r.timer, SynchronizationTimer);
         };
 
         r
     }
 
-    pub fn start(&mut self,sec: i64) {
+    pub fn start(&mut self, sec: i64) {
         if self.started {
             return;
         }
@@ -44,7 +51,7 @@ impl Timer {
         let mut interval = LARGE_INTEGER::default();
         interval.QuadPart = sec * -10000; // 5 seconds
 
-        unsafe { 
+        unsafe {
             KeSetTimerEx(self.timer, interval, sec as _, self.dpc);
             self.started = true;
         };
@@ -55,20 +62,19 @@ impl Timer {
             return;
         }
 
-        unsafe{
+        unsafe {
             KeCancelTimer(self.timer);
             self.started = false;
         }
     }
-
 }
 
-impl Drop for Timer{
+impl Drop for Timer {
     fn drop(&mut self) {
         println!("drop timer");
 
         if self.started {
-            unsafe{
+            unsafe {
                 KeCancelTimer(self.timer);
             }
         }

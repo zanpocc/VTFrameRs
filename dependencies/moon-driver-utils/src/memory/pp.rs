@@ -5,7 +5,7 @@ use wdk_sys::_POOL_TYPE::PagedPool;
 use super::{AllocationError, PoolMemory};
 
 pub struct PP<T> {
-    m: PoolMemory<T>
+    m: PoolMemory<T>,
 }
 
 unsafe impl<T: Send> Send for PP<T> {}
@@ -14,7 +14,7 @@ unsafe impl<T: Sync> Sync for PP<T> {}
 impl<T> PP<T> {
     pub fn new(value: T) -> Result<Self, AllocationError> {
         let p = PoolMemory::new(value, PagedPool)?;
-        Ok(Self{m: p})
+        Ok(Self { m: p })
     }
 
     pub fn new_type() -> Result<Self, AllocationError> {

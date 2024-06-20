@@ -1,13 +1,16 @@
 use wdk::println;
-use wdk_sys::{ntddk::{ExAcquireFastMutex, ExReleaseFastMutex, KeInitializeEvent}, FAST_MUTEX, FM_LOCK_BIT, _EVENT_TYPE::SynchronizationEvent};
-
+use wdk_sys::{
+    ntddk::{ExAcquireFastMutex, ExReleaseFastMutex, KeInitializeEvent},
+    FAST_MUTEX, FM_LOCK_BIT,
+    _EVENT_TYPE::SynchronizationEvent,
+};
 
 pub struct MutexLock {
     mutex: FAST_MUTEX,
     started: bool,
 }
 
-fn write_raw(dst:*mut i32, value: i32) {
+fn write_raw(dst: *mut i32, value: i32) {
     unsafe { *dst = value };
 }
 
@@ -26,8 +29,11 @@ impl MutexLock {
     pub fn new() -> Self {
         let mut mutex = FAST_MUTEX::default();
         ex_initialize_fast_mutex(&mut mutex);
-        
-        MutexLock { mutex, started: false }
+
+        MutexLock {
+            mutex,
+            started: false,
+        }
     }
 
     pub fn acquire(&mut self) {
@@ -44,7 +50,6 @@ impl MutexLock {
         }
     }
 }
-
 
 impl Drop for MutexLock {
     fn drop(&mut self) {

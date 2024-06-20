@@ -1,4 +1,7 @@
-use core::{cell::Cell, sync::atomic::{AtomicBool, AtomicUsize, Ordering}};
+use core::{
+    cell::Cell,
+    sync::atomic::{AtomicBool, AtomicUsize, Ordering},
+};
 
 use wdk_sys::ntddk::PsGetCurrentThreadId;
 
@@ -23,13 +26,17 @@ impl ReentrantSpinLock {
 
     pub fn lock(&self) -> ReentrantSpinGuard {
         let current_thread_id = unsafe { PsGetCurrentThreadId() } as usize;
-        
+
         if self.owner.load(Ordering::Relaxed) == current_thread_id {
             // 如果当前线程已经持有锁，则递增递归计数
             self.recursion_count.set(self.recursion_count.get() + 1);
         } else {
             // 否则尝试获取锁
-            while self.lock.compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed).is_err() {
+            while self
+                .lock
+                .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
+                .is_err()
+            {
                 // Busy-wait (spin)
             }
             // 锁定后设置所有者和递归计数

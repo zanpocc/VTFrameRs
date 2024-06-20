@@ -1,12 +1,14 @@
 use core::arch::asm;
 
-use wdk_sys::{ntddk::{KeLowerIrql, KfRaiseIrql}, DISPATCH_LEVEL, KIRQL};
-
+use wdk_sys::{
+    ntddk::{KeLowerIrql, KfRaiseIrql},
+    DISPATCH_LEVEL, KIRQL,
+};
 
 pub fn wpoff() -> KIRQL {
-    unsafe{ 
+    unsafe {
         let irql = KfRaiseIrql(DISPATCH_LEVEL as _);
-        asm!{
+        asm! {
             "push rax",
             "mov rax,cr0",
             "and rax,0xfffffffffffeffff",
@@ -19,9 +21,9 @@ pub fn wpoff() -> KIRQL {
     }
 }
 
-pub fn wpon(irql:KIRQL) {
-    unsafe{ 
-        asm!{
+pub fn wpon(irql: KIRQL) {
+    unsafe {
+        asm! {
             "mov rax,cr0",
             "or rax,0x10000",
             "sti",

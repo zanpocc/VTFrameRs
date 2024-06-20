@@ -1,6 +1,9 @@
 use core::ops::{Deref, DerefMut};
 
-use wdk_sys::{ntddk::{IoCreateNotificationEvent, KeClearEvent}, PKEVENT};
+use wdk_sys::{
+    ntddk::{IoCreateNotificationEvent, KeClearEvent},
+    PKEVENT,
+};
 
 use super::handle::Handle;
 
@@ -11,18 +14,17 @@ pub struct Event {
 }
 
 impl Event {
-
     pub fn new() -> Result<Self, &'static str> {
         let mut event_handle = Handle::default();
         unsafe {
-            let event =  IoCreateNotificationEvent(core::ptr::null_mut(), event_handle.as_ptr());
-            if event.is_null(){
+            let event = IoCreateNotificationEvent(core::ptr::null_mut(), event_handle.as_ptr());
+            if event.is_null() {
                 return Err("IoCreateNotificationEvent Error");
             }
 
             KeClearEvent(event);
 
-            let r = Self{
+            let r = Self {
                 raw: event,
                 h: event_handle,
             };
@@ -31,15 +33,12 @@ impl Event {
         }
     }
 
-    pub fn from_raw(raw: PKEVENT,h: Handle) -> Self {
+    pub fn from_raw(raw: PKEVENT, h: Handle) -> Self {
         unsafe {
             KeClearEvent(raw);
         }
 
-        Self { 
-            raw,
-            h,
-        }
+        Self { raw, h }
     }
 
     pub fn as_mut_raw(&mut self) -> PKEVENT {
@@ -63,7 +62,6 @@ impl DerefMut for Event {
 
 impl Drop for Event {
     fn drop(&mut self) {
-        if !self.raw.is_null(){
-        }
+        if !self.raw.is_null() {}
     }
 }

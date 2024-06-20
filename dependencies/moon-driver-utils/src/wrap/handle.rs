@@ -8,8 +8,8 @@ pub struct Handle {
 
 impl Default for Handle {
     fn default() -> Self {
-        Self{
-            raw: core::ptr::null_mut()
+        Self {
+            raw: core::ptr::null_mut(),
         }
     }
 }
@@ -24,7 +24,7 @@ impl Handle {
     }
 }
 
-impl Deref for Handle{
+impl Deref for Handle {
     type Target = HANDLE;
 
     fn deref(&self) -> &Self::Target {
@@ -40,8 +40,10 @@ impl DerefMut for Handle {
 
 impl Drop for Handle {
     fn drop(&mut self) {
-        if !self.raw.is_null(){
-            unsafe { let _ = ZwClose(self.raw); };
+        if !self.raw.is_null() {
+            unsafe {
+                let _ = ZwClose(self.raw);
+            };
         }
     }
 }

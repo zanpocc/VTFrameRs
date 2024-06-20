@@ -21,9 +21,9 @@ pub mod msr_index {
     pub const MSR_IA32_VMX_TRUE_ENTRY_CTLS: u32 = 0x490;
     pub const MSR_IA32_VMX_VMFUNC: u32 = 0x491;
     /** Tertiary processor-based VM execution controls. */
-    pub const MSR_IA32_VMX_PROCBASED_CTLS3:u32 = 0x492;
+    pub const MSR_IA32_VMX_PROCBASED_CTLS3: u32 = 0x492;
     /** Secondary VM-exit controls. */
-    pub const MSR_IA32_VMX_EXIT_CTLS2:u32 = 0x493;
+    pub const MSR_IA32_VMX_EXIT_CTLS2: u32 = 0x493;
 
     pub const MSR_IA32_SYSENTER_CS: u32 = 0x174;
     pub const MSR_IA32_SYSENTER_ESP: u32 = 0x175;
@@ -66,21 +66,17 @@ pub mod msr_index {
     // vmware
     pub const MSR_STIMER0_CONFIG: u32 = 0x400000b0;
     pub const MSR_STIMER0_COUNT: u32 = 0x400000b1;
-    
+
     pub const MSR_CRASH_CTL: u32 = 0x40000105;
     pub const MSR_CRASH_P0: u32 = 0x40000100;
 
-
-
-
     // RW will #GP
     pub const MSR_RESERVED_MIN: u32 = 0x40000000; // Reserved MSR Address Space Min
-    //pub const MSR_RESERVED_MAX: u32 =	0x400000FF; // Reserved MSR Address Space Max
+                                                  //pub const MSR_RESERVED_MAX: u32 =	0x400000FF; // Reserved MSR Address Space Max
     pub const MSR_RESERVED_MAX: u32 = 0xC0000079; // Reserved MSR Address Space Max
 
-    pub const MSR_UNKNOWN:u32 = 0xc0002fff;
-    pub const MSR_UNKNOWN2:u32 = 0x00002fff;
-
+    pub const MSR_UNKNOWN: u32 = 0xc0002fff;
+    pub const MSR_UNKNOWN2: u32 = 0x00002fff;
 }
 
 pub mod ia32_mtrr_capabilities_msr {
@@ -89,14 +85,12 @@ pub mod ia32_mtrr_capabilities_msr {
 
     pub const PAGE_FRAME_NUMBER_START: u64 = 12;
     pub const PAGE_FRAME_NUMBER_LEN: u64 = 36;
-
 }
 
 pub mod ia32_mtrr_phys_base_msr {
 
     pub const TYPE_START: u64 = 0;
     pub const TYPE_LEN: u64 = 8;
-    
 
     pub const PAGE_FRAME_NUMBER_START: u64 = 12;
     pub const PAGE_FRAME_NUMBER_LEN: u64 = 36;
@@ -111,33 +105,31 @@ pub mod ia32_mtrr_phys_mask_msr {
     pub const PAGE_FRAME_NUMBER_LEN: u64 = 36;
 }
 
-
 pub mod ia32_feature_control_msr {
     use crate::RT_BIT_64;
 
     /** Feature control - Lock MSR from writes (R/W0). */
-    pub const MSR_IA32_FEATURE_CONTROL_LOCK:u64 = RT_BIT_64!(0);
+    pub const MSR_IA32_FEATURE_CONTROL_LOCK: u64 = RT_BIT_64!(0);
     /** Feature control - Enable VMX inside SMX operation (R/WL). */
-    pub const MSR_IA32_FEATURE_CONTROL_SMX_VMXON:u64 = RT_BIT_64!(1);
+    pub const MSR_IA32_FEATURE_CONTROL_SMX_VMXON: u64 = RT_BIT_64!(1);
     /** Feature control - Enable VMX outside SMX operation (R/WL). */
-    pub const MSR_IA32_FEATURE_CONTROL_VMXON:u64 = RT_BIT_64!(2);
+    pub const MSR_IA32_FEATURE_CONTROL_VMXON: u64 = RT_BIT_64!(2);
     /** Feature control - SENTER local functions enable (R/WL).  */
-    pub const MSR_IA32_FEATURE_CONTROL_SENTER_LOCAL_FN_0:u64 = RT_BIT_64!(8);
-    pub const MSR_IA32_FEATURE_CONTROL_SENTER_LOCAL_FN_1:u64 = RT_BIT_64!(9);
-    pub const MSR_IA32_FEATURE_CONTROL_SENTER_LOCAL_FN_2:u64 = RT_BIT_64!(10);
-    pub const MSR_IA32_FEATURE_CONTROL_SENTER_LOCAL_FN_3:u64 = RT_BIT_64!(11);
-    pub const MSR_IA32_FEATURE_CONTROL_SENTER_LOCAL_FN_4:u64 = RT_BIT_64!(12);
-    pub const MSR_IA32_FEATURE_CONTROL_SENTER_LOCAL_FN_5:u64 = RT_BIT_64!(13);
-    pub const MSR_IA32_FEATURE_CONTROL_SENTER_LOCAL_FN_6:u64 = RT_BIT_64!(14);
+    pub const MSR_IA32_FEATURE_CONTROL_SENTER_LOCAL_FN_0: u64 = RT_BIT_64!(8);
+    pub const MSR_IA32_FEATURE_CONTROL_SENTER_LOCAL_FN_1: u64 = RT_BIT_64!(9);
+    pub const MSR_IA32_FEATURE_CONTROL_SENTER_LOCAL_FN_2: u64 = RT_BIT_64!(10);
+    pub const MSR_IA32_FEATURE_CONTROL_SENTER_LOCAL_FN_3: u64 = RT_BIT_64!(11);
+    pub const MSR_IA32_FEATURE_CONTROL_SENTER_LOCAL_FN_4: u64 = RT_BIT_64!(12);
+    pub const MSR_IA32_FEATURE_CONTROL_SENTER_LOCAL_FN_5: u64 = RT_BIT_64!(13);
+    pub const MSR_IA32_FEATURE_CONTROL_SENTER_LOCAL_FN_6: u64 = RT_BIT_64!(14);
     /** Feature control - SENTER global enable (R/WL). */
-    pub const MSR_IA32_FEATURE_CONTROL_SENTER_GLOBAL_EN:u64 = RT_BIT_64!(15);
+    pub const MSR_IA32_FEATURE_CONTROL_SENTER_GLOBAL_EN: u64 = RT_BIT_64!(15);
     /** Feature control - SGX launch control enable (R/WL). */
-    pub const MSR_IA32_FEATURE_CONTROL_SGX_LAUNCH_EN:u64 = RT_BIT_64!(17);
+    pub const MSR_IA32_FEATURE_CONTROL_SGX_LAUNCH_EN: u64 = RT_BIT_64!(17);
     /** Feature control - SGX global enable (R/WL). */
-    pub const MSR_IA32_FEATURE_CONTROL_SGX_GLOBAL_EN:u64 = RT_BIT_64!(18);
+    pub const MSR_IA32_FEATURE_CONTROL_SGX_GLOBAL_EN: u64 = RT_BIT_64!(18);
     /** Feature control - LMCE on (R/WL). */
-    pub const MSR_IA32_FEATURE_CONTROL_LMCE:u64 = RT_BIT_64!(20);
-
+    pub const MSR_IA32_FEATURE_CONTROL_LMCE: u64 = RT_BIT_64!(20);
 }
 
 pub mod ia32_vmx_basic_msr {

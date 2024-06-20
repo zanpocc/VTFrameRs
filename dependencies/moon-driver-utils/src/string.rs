@@ -15,7 +15,11 @@ pub fn string_to_u16_slice(input: &str) -> Vec<u16> {
 pub fn u16_slice_to_unicode_string(s: &[u16]) -> UNICODE_STRING {
     let len = s.len();
 
-    let n = if len > 0 && s[len - 1] == 0 { len - 1 } else { len };
+    let n = if len > 0 && s[len - 1] == 0 {
+        len - 1
+    } else {
+        len
+    };
 
     UNICODE_STRING {
         Length: (n * 2) as u16,
@@ -25,10 +29,8 @@ pub fn u16_slice_to_unicode_string(s: &[u16]) -> UNICODE_STRING {
 }
 
 pub fn u16_slice_to_string(s: &[u16]) -> String {
-    match String::from_utf16(s){
-        Ok(s) => {
-            return s
-        }
+    match String::from_utf16(s) {
+        Ok(s) => return s,
         Err(_) => {
             println!("from utf16 error");
         }
@@ -42,7 +44,11 @@ pub fn str_to_unicode_string(s: &str) -> UNICODE_STRING {
 
     let len = s.len();
 
-    let n = if len > 0 && s[len - 1] == 0 { len - 1 } else { len };
+    let n = if len > 0 && s[len - 1] == 0 {
+        len - 1
+    } else {
+        len
+    };
 
     UNICODE_STRING {
         Length: (n * 2) as u16,
@@ -56,8 +62,8 @@ pub fn unicode_string_to_string(s: &UNICODE_STRING) -> String {
     return u16_slice_to_string(buffer_slice);
 }
 
-pub fn cstr_to_rust_str(cstr_ptr: *mut u8) -> String{
-    unsafe { 
+pub fn cstr_to_rust_str(cstr_ptr: *mut u8) -> String {
+    unsafe {
         let c_str = CStr::from_ptr(cstr_ptr as _);
         c_str.to_string_lossy().into_owned()
     }

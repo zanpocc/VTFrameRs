@@ -58,7 +58,6 @@ macro_rules! info {
         {
             $crate::print!("Info {:<30}:{:<5} {}\n", file!(), line!(), format_args!($($arg)*));
         }
-        // $crate::log_message!("Info", $($arg)*);
     };
 }
 
