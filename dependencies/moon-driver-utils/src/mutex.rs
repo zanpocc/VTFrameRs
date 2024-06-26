@@ -14,21 +14,27 @@ fn write_raw(dst: *mut i32, value: i32) {
     unsafe { *dst = value };
 }
 
-pub fn ex_initialize_fast_mutex(fast_mutex: *mut FAST_MUTEX) {
-    unsafe {
-        let fast_mutex = fast_mutex.as_mut().unwrap();
-        write_raw(&mut fast_mutex.Count, FM_LOCK_BIT as _);
-        fast_mutex.Owner = core::ptr::null_mut();
-        fast_mutex.Contention = 0;
-        KeInitializeEvent(&mut fast_mutex.Event, SynchronizationEvent, 0);
-        return;
+/// # Safety
+///
+/// call system func
+pub unsafe fn ex_initialize_fast_mutex(fast_mutex: *mut FAST_MUTEX) {
+    let fast_mutex = fast_mutex.as_mut().unwrap();
+    write_raw(&mut fast_mutex.Count, FM_LOCK_BIT as _);
+    fast_mutex.Owner = core::ptr::null_mut();
+    fast_mutex.Contention = 0;
+    KeInitializeEvent(&mut fast_mutex.Event, SynchronizationEvent, 0);
+}
+
+impl Default for MutexLock {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
 impl MutexLock {
     pub fn new() -> Self {
         let mut mutex = FAST_MUTEX::default();
-        ex_initialize_fast_mutex(&mut mutex);
+        unsafe { ex_initialize_fast_mutex(&mut mutex) };
 
         MutexLock {
             mutex,

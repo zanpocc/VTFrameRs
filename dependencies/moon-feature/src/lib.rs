@@ -55,12 +55,12 @@ pub fn cpu_manufacturer() -> CpuManufacturer {
 
 pub fn physical_address_width() -> u64 {
     let cpuid_result = cpuidex(0x80000008, 0);
-    return cpuid_result.eax as u64 & 0xffu64;
+    cpuid_result.eax as u64 & 0xffu64
 }
 
 pub fn virtual_address_width() -> u64 {
     let cpuid_result = cpuidex(0x80000008, 0);
-    return (cpuid_result.eax >> 8) as u64 & 0xffu64;
+    (cpuid_result.eax >> 8) as u64 & 0xffu64
 }
 
 pub fn in_vmware() -> bool {

@@ -1,5 +1,4 @@
 #![no_std]
-
 pub mod device;
 pub mod driver;
 pub mod gd;
@@ -9,7 +8,7 @@ pub mod mem;
 pub mod slib;
 pub mod symbol;
 pub mod utils;
-pub mod vmx;
+pub mod vm;
 
 extern crate alloc;
 
@@ -19,8 +18,8 @@ extern crate wdk_panic;
 #[macro_use]
 extern crate lazy_static;
 
-use device::{device::Device, ioctl::IoControl, symbolic_link::SymbolicLink};
-use driver::driver::Driver;
+use device::{ioctl::IoControl, symbolic_link::SymbolicLink};
+use driver::Driver;
 use hook::inline_hook::InlineHook;
 use moon_driver_utils::memory::npp::NPP;
 use moon_log::{buffer::drop_log, error, info};
@@ -32,6 +31,7 @@ use mem::global_alloc::WDKAllocator;
 #[global_allocator]
 static GLOBAL_ALLOCATOR: WDKAllocator = WDKAllocator;
 
+use vm::vmx::Vmm;
 use wdk_sys::{
     ACCESS_MASK, DRIVER_OBJECT, IRP_MJ_MAXIMUM_FUNCTION, NTSTATUS, PCLIENT_ID, PCUNICODE_STRING,
     PDRIVER_OBJECT, PHANDLE64, POBJECT_ATTRIBUTES, STATUS_SUCCESS, STATUS_UNSUCCESSFUL,
@@ -39,41 +39,24 @@ use wdk_sys::{
 };
 
 use crate::{
-    device::device::dispatch_device,
-    gd::gd::GD,
+    device::dispatch_device,
+    gd::GD,
     hook::inline_hook::{NtOpenProcessFn, HOOK_LIST},
-    symbol::{generic::OS_INFO, symbol::get_ssdt_function_by_name},
-    vmx::{check::check_vmx_cpu_support, vmx::Vmm},
+    symbol::{generic::OS_INFO, get_ssdt_function_by_name},
+    vm::check::check_vmx_cpu_support,
 };
 
 static mut __GD: Option<NPP<GD>> = Option::None;
 
-// pub unsafe extern "C" fn timer_callback(
-//     _dpc: *mut KDPC,
-//     deferred_context: *mut c_void,
-//     _system_argument1: *mut c_void,
-//     _system_argument2: *mut c_void) {
-
-//     println!("timer_callback");
-
-//     if deferred_context.is_null(){
-//         return;
-//     }
-
-//     let log = &mut *(deferred_context as *mut CircularLogBuffer);
-//     log.acquire();
-//     // todo:can not createfile on irql 2 Dispatch_level
-//     // log.persist_to_file();
-//     log.release();
-// }
-
+/// # Safety
+///
+/// this will call origin function
 pub unsafe fn my_nt_open_process(
     process_handle: PHANDLE64,
     desired_access: ACCESS_MASK,
     object_attributes: POBJECT_ATTRIBUTES,
     client_id: PCLIENT_ID,
 ) -> NTSTATUS {
-    // info!("hello ntopenprocess");
     let r = HOOK_LIST.read();
 
     let r = &r.as_ref();
@@ -89,7 +72,9 @@ pub unsafe fn my_nt_open_process(
     STATUS_UNSUCCESSFUL
 }
 
-pub unsafe fn test() -> Result<(), ()> {
+pub struct TestError {}
+
+pub fn test() -> Result<(), TestError> {
     // test log persistent
     for i in 0..1000 {
         info!("Test Log:{}", i);
@@ -99,49 +84,45 @@ pub unsafe fn test() -> Result<(), ()> {
     let nt_open_process = get_ssdt_function_by_name("NtOpenProcess");
     info!("NtOpenProcess:{:p}", nt_open_process);
 
-    let hook = InlineHook::inline_hook(nt_open_process as _, my_nt_open_process as _);
+    let hook = InlineHook::new(nt_open_process as _, my_nt_open_process as _);
     match hook {
         Ok(h) => {
             let mut w = HOOK_LIST.write();
-            (&mut w).as_mut().unwrap().nt_open_process = Some(h);
-            (&mut w)
-                .as_mut()
-                .unwrap()
-                .nt_open_process
-                .as_mut()
-                .unwrap()
-                .hook();
+            w.as_mut().unwrap().nt_open_process = Some(h);
+            w.as_mut().unwrap().nt_open_process.as_mut().unwrap().hook();
         }
         Err(_) => {
             info!("hook error");
-            return Err(());
+            return Err(TestError {});
         }
     }
 
     Ok(())
 }
 
-pub unsafe fn init(driver_object: &mut _DRIVER_OBJECT) -> Result<(), ()> {
+pub struct InitError {}
+
+/// # Safety
+///
+/// init will change global var
+pub unsafe fn init(driver_object: &mut _DRIVER_OBJECT) -> Result<(), InitError> {
     // allocate global memeory
     match NPP::new(GD::default()) {
         Ok(r) => {
             __GD = Some(r);
         }
         Err(_e) => {
-            return Err(());
+            return Err(InitError {});
         }
     }
 
     // check cpu support
-    match check_vmx_cpu_support() {
-        Ok(_) => {}
-        Err(e) => {
-            error!("{}", e);
-            return Err(());
-        }
+    if let Err(e) = check_vmx_cpu_support() {
+        error!("{}", e);
+        return Err(InitError {});
     }
 
-    // create device and symboliclink
+    // create device and symboliclink)
     let mut driver = Driver::from_raw(driver_object);
     match driver.create_device("\\Device\\20240202", 0x22, 0, 0, IoControl {}) {
         Ok(device) => {
@@ -153,7 +134,7 @@ pub unsafe fn init(driver_object: &mut _DRIVER_OBJECT) -> Result<(), ()> {
                     }
                     Err(e) => {
                         error!("{}", e);
-                        return Err(());
+                        return Err(InitError {});
                     }
                 }
 
@@ -161,20 +142,23 @@ pub unsafe fn init(driver_object: &mut _DRIVER_OBJECT) -> Result<(), ()> {
                 match gd.vmm.as_mut().unwrap().start() {
                     Ok(_) => {}
                     Err(_) => {
-                        return Err(());
+                        return Err(InitError {});
                     }
                 }
             }
         }
         Err(err) => {
             error!("{}", err);
-            return Err(());
+            return Err(InitError {});
         }
     }
 
     Ok(())
 }
 
+/// # Safety
+///
+/// DriverEntry
 #[export_name = "DriverEntry"] // WDF expects a symbol with the name DriverEntry
 pub unsafe extern "system" fn driver_entry(
     driver_object: PDRIVER_OBJECT,
@@ -185,20 +169,14 @@ pub unsafe extern "system" fn driver_entry(
     let status = STATUS_SUCCESS;
     let driver_object = driver_object.as_mut().unwrap();
 
-    match init(driver_object) {
-        Err(_) => {
-            clear();
-            return STATUS_UNSUCCESSFUL;
-        }
-        _ => {}
+    if init(driver_object).is_err() {
+        clear();
+        return STATUS_UNSUCCESSFUL;
     }
 
-    match test() {
-        Err(_) => {
-            clear();
-            return STATUS_UNSUCCESSFUL;
-        }
-        _ => {}
+    if test().is_err() {
+        clear();
+        return STATUS_UNSUCCESSFUL;
     }
 
     info!("{}", OS_INFO.version_name);
@@ -212,6 +190,9 @@ pub unsafe extern "system" fn driver_entry(
     status
 }
 
+/// # Safety
+///
+/// clear memory
 pub unsafe fn clear() {
     // clear resources when drvier unload
     let _ = __GD.take();
@@ -223,6 +204,9 @@ pub unsafe fn clear() {
     info!("DriverUnload Success");
 }
 
+/// # Safety
+///
+/// driver_unload
 pub unsafe extern "C" fn driver_unload(_driver: *mut DRIVER_OBJECT) {
     clear();
 }

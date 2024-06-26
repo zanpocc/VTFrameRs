@@ -49,8 +49,7 @@ pub fn query_registry_string(key: &str, value: &str) -> String {
 
     let buffer_slice = unsafe { slice::from_raw_parts(p_data, len) };
 
-    let v = u16_slice_to_string(&buffer_slice);
-    v
+    u16_slice_to_string(buffer_slice)
 }
 
 struct Registry {
@@ -60,10 +59,13 @@ struct Registry {
 impl Registry {
     // key should begin with \Registry
     pub fn new(key: &str, create: bool) -> Self {
-        let mut oa = OBJECT_ATTRIBUTES::default();
-        oa.ObjectName = &mut str_to_unicode_string(key);
-        oa.Attributes = OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE;
-        oa.Length = core::mem::size_of::<OBJECT_ATTRIBUTES>() as _;
+        let mut oa = OBJECT_ATTRIBUTES {
+            ObjectName: &mut str_to_unicode_string(key),
+            Attributes: OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
+            Length: core::mem::size_of::<OBJECT_ATTRIBUTES>() as _,
+            ..Default::default()
+        };
+
         // init_obj_attr(&mut oa,key);
 
         let mut h_key = core::ptr::null_mut();
@@ -75,7 +77,7 @@ impl Registry {
             }
         }
 
-        Self { h_key: h_key }
+        Self { h_key }
     }
 }
 

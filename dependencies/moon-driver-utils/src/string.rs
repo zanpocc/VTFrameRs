@@ -1,6 +1,6 @@
 extern crate alloc;
 
-use core::{ffi::CStr, slice, u8};
+use core::{ffi::CStr, slice};
 
 use alloc::{string::String, vec::Vec};
 use wdk::println;
@@ -36,7 +36,7 @@ pub fn u16_slice_to_string(s: &[u16]) -> String {
         }
     }
 
-    return String::new();
+    String::new()
 }
 
 pub fn str_to_unicode_string(s: &str) -> UNICODE_STRING {
@@ -59,7 +59,7 @@ pub fn str_to_unicode_string(s: &str) -> UNICODE_STRING {
 
 pub fn unicode_string_to_string(s: &UNICODE_STRING) -> String {
     let buffer_slice = unsafe { slice::from_raw_parts(s.Buffer, s.Length as usize / 2) };
-    return u16_slice_to_string(buffer_slice);
+    u16_slice_to_string(buffer_slice)
 }
 
 pub fn cstr_to_rust_str(cstr_ptr: *mut u8) -> String {

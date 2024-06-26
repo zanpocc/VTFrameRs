@@ -17,7 +17,7 @@ pub fn wpoff() -> KIRQL {
 
             "cli",
         };
-        return irql;
+        irql
     }
 }
 

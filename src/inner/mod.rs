@@ -4,7 +4,10 @@ use moon_struct::inner::PKPROCESSOR_STATE;
 // kernel inner function
 use wdk_sys::{LIST_ENTRY, PCONTEXT, PIO_STACK_LOCATION, PIRP, _EXCEPTION_RECORD};
 
-pub fn io_get_current_irp_stack_location(irp: PIRP) -> PIO_STACK_LOCATION {
+/// # Safety
+///
+/// derefernce to irp
+pub unsafe fn io_get_current_irp_stack_location(irp: PIRP) -> PIO_STACK_LOCATION {
     unsafe {
         (*irp)
             .Tail

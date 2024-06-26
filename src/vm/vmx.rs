@@ -26,11 +26,8 @@ use wdk_sys::{
 
 use crate::{
     inner::{KeSaveStateForHibernate, RtlRestoreContext},
-    utils::utils::{get_current_processor_idx, protect_non_paged_memory},
-    vmx::{
-        data::vmcs_encoding::{CR0_GUEST_HOST_MASK, HOST_FS_BASE, HOST_GS_BASE, HOST_TR_BASE},
-        ins::{__vmx_on, __vmx_read_error, __vmx_vmclear, __vmx_vmlaunch, __vmx_vmptrld},
-    },
+    utils::{get_current_processor_idx, protect_non_paged_memory},
+    vm::ins::{__vmx_read_error, __vmx_vmlaunch},
     __GD,
 };
 
@@ -38,19 +35,20 @@ use super::{
     data::{
         vm_call::EXIT_VT,
         vmcs_encoding::{
-            CPU_BASED_VM_EXEC_CONTROL, CR0_READ_SHADOW, CR4_GUEST_HOST_MASK, CR4_READ_SHADOW,
-            EPT_POINTER, GUEST_CR0, GUEST_CR3, GUEST_CR4, GUEST_CS_AR_BYTES, GUEST_CS_BASE,
-            GUEST_CS_LIMIT, GUEST_CS_SELECTOR, GUEST_DR7, GUEST_DS_AR_BYTES, GUEST_DS_BASE,
-            GUEST_DS_LIMIT, GUEST_DS_SELECTOR, GUEST_ES_AR_BYTES, GUEST_ES_BASE, GUEST_ES_LIMIT,
-            GUEST_ES_SELECTOR, GUEST_FS_AR_BYTES, GUEST_FS_BASE, GUEST_FS_LIMIT, GUEST_FS_SELECTOR,
-            GUEST_GDTR_BASE, GUEST_GDTR_LIMIT, GUEST_GS_AR_BYTES, GUEST_GS_BASE, GUEST_GS_LIMIT,
-            GUEST_GS_SELECTOR, GUEST_IA32_DEBUGCTL, GUEST_IDTR_BASE, GUEST_IDTR_LIMIT,
-            GUEST_LDTR_AR_BYTES, GUEST_LDTR_BASE, GUEST_LDTR_LIMIT, GUEST_LDTR_SELECTOR,
-            GUEST_RFLAGS, GUEST_RIP, GUEST_RSP, GUEST_SS_AR_BYTES, GUEST_SS_BASE, GUEST_SS_LIMIT,
-            GUEST_SS_SELECTOR, GUEST_TR_AR_BYTES, GUEST_TR_BASE, GUEST_TR_LIMIT, GUEST_TR_SELECTOR,
-            HOST_CR0, HOST_CR3, HOST_CR4, HOST_CS_SELECTOR, HOST_DS_SELECTOR, HOST_ES_SELECTOR,
-            HOST_FS_SELECTOR, HOST_GDTR_BASE, HOST_GS_SELECTOR, HOST_IDTR_BASE, HOST_RIP, HOST_RSP,
-            HOST_SS_SELECTOR, HOST_TR_SELECTOR, MSR_BITMAP, PIN_BASED_VM_EXEC_CONTROL,
+            CPU_BASED_VM_EXEC_CONTROL, CR0_GUEST_HOST_MASK, CR0_READ_SHADOW, CR4_GUEST_HOST_MASK,
+            CR4_READ_SHADOW, EPT_POINTER, GUEST_CR0, GUEST_CR3, GUEST_CR4, GUEST_CS_AR_BYTES,
+            GUEST_CS_BASE, GUEST_CS_LIMIT, GUEST_CS_SELECTOR, GUEST_DR7, GUEST_DS_AR_BYTES,
+            GUEST_DS_BASE, GUEST_DS_LIMIT, GUEST_DS_SELECTOR, GUEST_ES_AR_BYTES, GUEST_ES_BASE,
+            GUEST_ES_LIMIT, GUEST_ES_SELECTOR, GUEST_FS_AR_BYTES, GUEST_FS_BASE, GUEST_FS_LIMIT,
+            GUEST_FS_SELECTOR, GUEST_GDTR_BASE, GUEST_GDTR_LIMIT, GUEST_GS_AR_BYTES, GUEST_GS_BASE,
+            GUEST_GS_LIMIT, GUEST_GS_SELECTOR, GUEST_IA32_DEBUGCTL, GUEST_IDTR_BASE,
+            GUEST_IDTR_LIMIT, GUEST_LDTR_AR_BYTES, GUEST_LDTR_BASE, GUEST_LDTR_LIMIT,
+            GUEST_LDTR_SELECTOR, GUEST_RFLAGS, GUEST_RIP, GUEST_RSP, GUEST_SS_AR_BYTES,
+            GUEST_SS_BASE, GUEST_SS_LIMIT, GUEST_SS_SELECTOR, GUEST_TR_AR_BYTES, GUEST_TR_BASE,
+            GUEST_TR_LIMIT, GUEST_TR_SELECTOR, HOST_CR0, HOST_CR3, HOST_CR4, HOST_CS_SELECTOR,
+            HOST_DS_SELECTOR, HOST_ES_SELECTOR, HOST_FS_BASE, HOST_FS_SELECTOR, HOST_GDTR_BASE,
+            HOST_GS_BASE, HOST_GS_SELECTOR, HOST_IDTR_BASE, HOST_RIP, HOST_RSP, HOST_SS_SELECTOR,
+            HOST_TR_BASE, HOST_TR_SELECTOR, MSR_BITMAP, PIN_BASED_VM_EXEC_CONTROL,
             SECONDARY_VM_EXEC_CONTROL, VIRTUAL_PROCESSOR_ID, VMCS_LINK_POINTER, VM_ENTRY_CONTROLS,
             VM_EXIT_CONTROLS,
         },
@@ -61,8 +59,11 @@ use super::{
         },
         vmx_vm_enter_controls, vmx_vm_exit_controls,
     },
-    ept::ept::EptState,
-    ins::{VmxInstructionResult, __vmx_off, __vmx_vmcall, __vmx_vmwrite},
+    ept::EptState,
+    ins::{
+        VmxInstructionResult, __vmx_off, __vmx_on, __vmx_vmcall, __vmx_vmclear, __vmx_vmptrld,
+        __vmx_vmwrite,
+    },
 };
 
 extern "C" {
@@ -90,6 +91,8 @@ pub struct Vmm {
     pub ept_state: Option<EptState>,
     pub vcpu: Vec<Box<Vcpu>>,
 }
+
+pub struct StartVTError {}
 
 impl Vcpu {
     // free vmm relate physical memory self
@@ -181,14 +184,14 @@ impl Vcpu {
             }
         }
 
-        return Ok(());
+        Ok(())
     }
 
     fn vmxp_adjust_msr(&self, control_value: u64, desired_value: u32) -> u32 {
-        let mut result = desired_value.clone();
+        let mut result = desired_value;
         result &= (control_value >> 32) as u32;
         result |= control_value as u32;
-        return result;
+        result
     }
 
     fn convert_gdt_entry(&mut self, base: u64, selector: USHORT) -> GdtEntry64 {
@@ -203,8 +206,8 @@ impl Vcpu {
         let mut temp_base;
 
         temp_base = unsafe {
-            (((gdt_entry.dummy.u.bytes.BaseHigh) as u64) << 24) as u64
-                | (((gdt_entry.dummy.u.bytes.BaseMiddle) as u64) << 16) as u64
+            (((gdt_entry.dummy.u.bytes.BaseHigh) as u64) << 24)
+                | (((gdt_entry.dummy.u.bytes.BaseMiddle) as u64) << 16)
                 | (gdt_entry.dummy.base_low) as u64 & u64::MAX
         };
 
@@ -236,12 +239,12 @@ impl Vcpu {
             };
         }
 
-        return GdtEntry64 {
+        GdtEntry64 {
             selector,
             limit: limit as _,
-            access_rights: access_rights,
+            access_rights,
             base: temp_base,
-        };
+        }
     }
 
     fn init_msr_bitmap(&mut self) {
@@ -644,27 +647,21 @@ impl Vcpu {
         self.vm_resources.msr_bitmap = msr_bitmap;
 
         // set physical page RW
-        match protect_non_paged_memory(vmxon, size_of::<VmxVmcs>() as _, PAGE_READWRITE) {
-            Ok(_) => {}
-            Err(_) => {
+        unsafe {
+            if protect_non_paged_memory(vmxon, size_of::<VmxVmcs>() as _, PAGE_READWRITE).is_err() {
                 return;
             }
-        }
-        match protect_non_paged_memory(vmcs, size_of::<VmxVmcs>() as _, PAGE_READWRITE) {
-            Ok(_) => {}
-            Err(_) => {
+
+            if protect_non_paged_memory(vmcs, size_of::<VmxVmcs>() as _, PAGE_READWRITE).is_err() {
                 return;
             }
-        }
-        match protect_non_paged_memory(vmm_stack, KERNEL_STACK_SIZE as _, PAGE_READWRITE) {
-            Ok(_) => {}
-            Err(_) => {
+
+            if protect_non_paged_memory(vmm_stack, KERNEL_STACK_SIZE as _, PAGE_READWRITE).is_err()
+            {
                 return;
             }
-        }
-        match protect_non_paged_memory(msr_bitmap, PAGE_SIZE as _, PAGE_READWRITE) {
-            Ok(_) => {}
-            Err(_) => {
+
+            if protect_non_paged_memory(msr_bitmap, PAGE_SIZE as _, PAGE_READWRITE).is_err() {
                 return;
             }
         }
@@ -756,6 +753,12 @@ impl Drop for Vcpu {
     fn drop(&mut self) {}
 }
 
+impl Default for Vmm {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Vmm {
     pub fn new() -> Self {
         let cpu_count = unsafe { KeQueryActiveProcessorCount(core::ptr::null_mut()) } as u32;
@@ -782,7 +785,7 @@ impl Vmm {
         }
 
         Self {
-            cpu_count: cpu_count,
+            cpu_count,
             vmx_features: VMXFeatures::default(),
             ept_state: Option::None,
             vcpu: vcpus,
@@ -824,7 +827,7 @@ impl Vmm {
         }
     }
 
-    pub fn start(&mut self) -> Result<(), ()> {
+    pub fn start(&mut self) -> Result<(), StartVTError> {
         self.check_and_set_features();
         if self.vmx_features.ept {
             self.ept_state = Some(EptState::new());
@@ -840,7 +843,7 @@ impl Vmm {
 
         for item in &self.vcpu {
             if item.vcpu_vmx_state != VcpuVmxState::VmxStateOn {
-                return Err(());
+                return Err(StartVTError {});
             }
         }
 

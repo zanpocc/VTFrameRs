@@ -61,13 +61,13 @@ impl<T> PoolMemory<T> {
 
     fn drop_internel(&self) {
         // Explicitly drop the value first
-        unsafe { core::ptr::drop_in_place(self.as_raw()) };
+        unsafe { core::ptr::drop_in_place(self.as_ptr()) };
 
         // Free the memory using ExFreePool
-        unsafe { ExFreePool(self.as_raw() as *mut _) };
+        unsafe { ExFreePool(self.as_ptr() as *mut _) };
     }
 
-    pub fn as_raw(&self) -> *mut T {
+    pub fn as_ptr(&self) -> *mut T {
         self.ptr.as_ptr()
     }
 }

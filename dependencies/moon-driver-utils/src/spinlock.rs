@@ -15,6 +15,12 @@ pub struct ReentrantSpinGuard<'a> {
     spinlock: &'a ReentrantSpinLock,
 }
 
+impl Default for ReentrantSpinLock {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ReentrantSpinLock {
     pub fn new() -> Self {
         ReentrantSpinLock {

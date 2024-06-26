@@ -18,7 +18,10 @@ pub struct Timer {
 }
 
 impl Timer {
-    pub fn new(callback: PKDEFERRED_ROUTINE, arg: *mut c_void) -> Self {
+    /// # Safety
+    ///
+    /// arg
+    pub unsafe fn new(callback: PKDEFERRED_ROUTINE, arg: *mut c_void) -> Self {
         let mut r = Timer {
             timer: core::ptr::null_mut(),
             dpc: core::ptr::null_mut(),
@@ -30,7 +33,7 @@ impl Timer {
             r.dpc = ExAllocatePool(NonPagedPool, core::mem::size_of::<KDPC>() as _) as _;
         }
 
-        println!("{:p},{:p}", r.timer, r.dpc);
+        // println!("{:p},{:p}", r.timer, r.dpc);
 
         unsafe {
             KeInitializeDpc(r.dpc, callback, arg);

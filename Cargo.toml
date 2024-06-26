@@ -1,4 +1,10 @@
-workspace = { members = [ "dependencies/moon-feature", "dependencies/moon-instructions","dependencies/moon-struct","dependencies/moon-log","dependencies/moon-driver-utils"] }
+workspace = { members = [
+    "dependencies/moon-feature",
+    "dependencies/moon-instructions",
+    "dependencies/moon-struct",
+    "dependencies/moon-log",
+    "dependencies/moon-driver-utils",
+] }
 [package]
 name = "rust_driver"
 version = "0.1.0"
@@ -13,11 +19,11 @@ wdk-sys = "0.2.0"
 lazy_static = "1.4.0"
 
 cty = "0.2.2"
-moon-struct = { path = "./dependencies/moon-struct",version = "*" }
-moon-instructions = { path = "./dependencies/moon-instructions",version = "*" }
-moon-feature = { path = "./dependencies/moon-feature",version = "*" }
-moon-driver-utils = { path = "./dependencies/moon-driver-utils",version = "*" }
-moon-log = { path = "./dependencies/moon-log",version = "*" }
+moon-struct = { path = "./dependencies/moon-struct", version = "*" }
+moon-instructions = { path = "./dependencies/moon-instructions", version = "*" }
+moon-feature = { path = "./dependencies/moon-feature", version = "*" }
+moon-driver-utils = { path = "./dependencies/moon-driver-utils", version = "*" }
+moon-log = { path = "./dependencies/moon-log", version = "*" }
 
 [build-dependencies]
 wdk-build = "0.2.0"
@@ -29,8 +35,8 @@ crate-type = ["cdylib"]
 
 [profile.dev]
 panic = "abort"
-lto = true # optional setting to enable Link Time Optimizations
+lto = true      # optional setting to enable Link Time Optimizations
 
 [profile.release]
 panic = "abort"
-lto = true # optional setting to enable Link Time Optimizations
+lto = true      # optional setting to enable Link Time Optimizations

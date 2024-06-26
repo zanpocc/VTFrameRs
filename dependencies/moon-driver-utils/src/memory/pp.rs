@@ -22,8 +22,8 @@ impl<T> PP<T> {
         Ok(Self { m: p })
     }
 
-    pub fn as_raw(&self) -> *mut T {
-        self.m.as_raw()
+    pub fn as_ptr(&self) -> *mut T {
+        self.m.as_ptr()
     }
 }
 
@@ -31,12 +31,12 @@ impl<T> Deref for PP<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        unsafe { &*self.as_raw() }
+        unsafe { &*self.as_ptr() }
     }
 }
 
 impl<T> DerefMut for PP<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { &mut *self.as_raw() }
+        unsafe { &mut *self.as_ptr() }
     }
 }

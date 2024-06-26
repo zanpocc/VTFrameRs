@@ -1,9 +1,6 @@
 use moon_log::info;
 
-use super::{
-    device::{Device, DeviceOperations},
-    io_request::IoRequest,
-};
+use super::{io_request::IoRequest, Device, DeviceOperations};
 
 macro_rules! CTL_CODE {
     ($DeviceType:expr, $Function:expr, $Method:expr, $Access:expr) => {
@@ -28,25 +25,25 @@ const IOCTL_DEVICE_IO_CONTROL_TEST: u32 =
 pub struct IoControl {}
 
 impl DeviceOperations for IoControl {
-    fn create(&mut self, _device: &Device, request: &IoRequest) -> Result<(), &'static str> {
+    fn create(&self, _device: &Device, request: &mut IoRequest) -> Result<(), &'static str> {
         info!("create dispatch");
         request.complete(Ok(0));
         Ok(())
     }
 
-    fn close(&mut self, _device: &Device, request: &IoRequest) -> Result<(), &'static str> {
+    fn close(&self, _device: &Device, request: &mut IoRequest) -> Result<(), &'static str> {
         info!("close dispatch");
         request.complete(Ok(0));
         Ok(())
     }
 
-    fn cleanup(&mut self, _device: &Device, request: &IoRequest) -> Result<(), &'static str> {
+    fn cleanup(&self, _device: &Device, request: &mut IoRequest) -> Result<(), &'static str> {
         info!("cleanup dispatch");
         request.complete(Ok(0));
         Ok(())
     }
 
-    fn others(&mut self, _device: &Device, request: &IoRequest) -> Result<(), &'static str> {
+    fn others(&self, _device: &Device, request: &mut IoRequest) -> Result<(), &'static str> {
         info!("IoCtl");
 
         let code = request.control_code();
@@ -56,21 +53,18 @@ impl DeviceOperations for IoControl {
 
         let mut ret = 0;
 
-        match code {
-            IOCTL_DEVICE_IO_CONTROL_TEST => {
-                info!("Test DeviceControl");
-                let p: *mut DeviceIoTestOut = buff as _;
-                unsafe {
-                    info!("{},{}", (*p).length, (*p).maximum_length);
-                }
-
-                let out_p: *mut DeviceIoTestOut = buff as _;
-                (unsafe { &mut *out_p }).length = 1;
-                (unsafe { &mut *out_p }).maximum_length = 2;
-
-                ret = core::mem::size_of::<DeviceIoTestOut>();
+        if code == IOCTL_DEVICE_IO_CONTROL_TEST {
+            info!("Test DeviceControl");
+            let p: *mut DeviceIoTestOut = buff as _;
+            unsafe {
+                info!("{},{}", (*p).length, (*p).maximum_length);
             }
-            _ => {}
+
+            let out_p: *mut DeviceIoTestOut = buff as _;
+            (unsafe { &mut *out_p }).length = 1;
+            (unsafe { &mut *out_p }).maximum_length = 2;
+
+            ret = core::mem::size_of::<DeviceIoTestOut>();
         }
 
         request.complete(Ok(ret));

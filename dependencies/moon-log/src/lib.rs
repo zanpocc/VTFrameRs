@@ -12,7 +12,6 @@ use alloc::ffi::CString;
 use buffer::LOG;
 use wdk_sys::ntddk::DbgPrint;
 
-
 #[doc(hidden)]
 pub fn _print(args: core::fmt::Arguments) {
     let formatted_string = CString::new(alloc::format!("{args}"))
@@ -22,11 +21,8 @@ pub fn _print(args: core::fmt::Arguments) {
         DbgPrint(formatted_string.as_ptr());
 
         let mut rw = LOG.write();
-        match &mut *rw{
-            Some(r) => {
-                r.write_log(args);
-            }
-            _ => {}
+        if let Some(r) = &mut *rw {
+            r.write_log(args);
         }
     }
 }
@@ -102,5 +98,3 @@ macro_rules! error {
         }
     };
 }
-
-

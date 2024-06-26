@@ -14,8 +14,8 @@ use moon_struct::{
 use wdk_sys::{ntddk::KeGetCurrentIrql, LARGE_INTEGER};
 
 use crate::{
-    utils::utils::virtual_address_to_physical_address,
-    vmx::{
+    utils::virtual_address_to_physical_address,
+    vm::{
         data::{
             vmcs_encoding::{
                 EXIT_QUALIFICATION, GUEST_LINEAR_ADDRESS, GUEST_PHYSICAL_ADDRESS, GUEST_RFLAGS,
@@ -43,7 +43,7 @@ use super::{
             VM_EXIT_INSTRUCTION_LEN,
         },
     },
-    ept::ept::InveptDescriptor,
+    ept::InveptDescriptor,
     ins::{VmxInstructionResult, __invept, __vmx_off, __vmx_vmwrite},
 };
 
@@ -227,9 +227,10 @@ fn vm_exit_cpuid(guest_state: &mut GuestState) {
 }
 
 fn invept_single(eptp: u64) {
-    let mut descriptor = InveptDescriptor::default();
-    descriptor.ept_pointer = eptp;
-    descriptor.reserved = 0;
+    let mut descriptor = InveptDescriptor {
+        ept_pointer: eptp,
+        reserved: 0,
+    };
 
     __invept(INVEPT_SINGLE_CONTEXT, &mut descriptor as *mut _ as _);
 }
@@ -253,6 +254,17 @@ fn ept_perform_page_hook(
     if physical_target == 0 {
         return Err("Target address could not be mapped to physical memory");
     }
+
+    let _ept_state = unsafe {
+        __GD.as_mut()
+            .unwrap()
+            .vmm
+            .as_mut()
+            .unwrap()
+            .ept_state
+            .as_mut()
+            .unwrap()
+    };
 
     Ok(())
 }
@@ -388,27 +400,24 @@ fn vm_exit_msr_write(guest_state: &mut GuestState) {
                     .in_vmware
             } {
                 write_msr(ecx, unsafe { msr_value.QuadPart } as _);
-            } else {
-                if ecx >= msr::msr_index::MSR_RESERVED_MIN
-                    && ecx <= msr::msr_index::MSR_RESERVED_MAX
-                {
-                    warn!("MSR_RESERVED:{:X}", ecx);
-                    vmx_inject_event(
-                        INTERRUPT_HARDWARE_EXCEPTION,
-                        VECTOR_INVALID_OPCODE_EXCEPTION,
-                        0,
-                    );
-                    return;
-                } else if ecx == msr::msr_index::MSR_UNKNOWN || ecx == msr::msr_index::MSR_UNKNOWN2
-                {
-                    warn!("MSR_UNKNOWN:{:X}", ecx);
-                    vmx_inject_event(
-                        INTERRUPT_HARDWARE_EXCEPTION,
-                        VECTOR_INVALID_OPCODE_EXCEPTION,
-                        0,
-                    );
-                    return;
-                }
+            } else if (msr::msr_index::MSR_RESERVED_MIN..=msr::msr_index::MSR_RESERVED_MAX)
+                .contains(&ecx)
+            {
+                warn!("MSR_RESERVED:{:X}", ecx);
+                vmx_inject_event(
+                    INTERRUPT_HARDWARE_EXCEPTION,
+                    VECTOR_INVALID_OPCODE_EXCEPTION,
+                    0,
+                );
+                return;
+            } else if ecx == msr::msr_index::MSR_UNKNOWN || ecx == msr::msr_index::MSR_UNKNOWN2 {
+                warn!("MSR_UNKNOWN:{:X}", ecx);
+                vmx_inject_event(
+                    INTERRUPT_HARDWARE_EXCEPTION,
+                    VECTOR_INVALID_OPCODE_EXCEPTION,
+                    0,
+                );
+                return;
             }
         }
     }
@@ -613,12 +622,16 @@ unsafe extern "C" fn vmx_exit_handler(context: &mut Context) -> u64 {
     unsafe { guest_state.guest_regs.as_mut().unwrap().rsp = guest_state.guest_rsp };
 
     // gdt,idt
-    let mut gdtr: KDESCRIPTOR = KDESCRIPTOR::default();
-    gdtr.Base = vmcs_read(GUEST_GDTR_BASE);
-    gdtr.Limit = vmcs_read(GUEST_GDTR_LIMIT) as _;
-    let mut idtr: KDESCRIPTOR = KDESCRIPTOR::default();
-    idtr.Base = vmcs_read(GUEST_IDTR_BASE);
-    idtr.Limit = vmcs_read(GUEST_IDTR_LIMIT) as _;
+    let gdtr: KDESCRIPTOR = KDESCRIPTOR {
+        Base: vmcs_read(GUEST_GDTR_BASE),
+        Limit: vmcs_read(GUEST_GDTR_LIMIT) as _,
+        ..Default::default()
+    };
+    let idtr = KDESCRIPTOR {
+        Base: vmcs_read(GUEST_IDTR_BASE),
+        Limit: vmcs_read(GUEST_IDTR_LIMIT) as _,
+        ..Default::default()
+    };
 
     lgdt(&gdtr);
     lidt(&idtr);
@@ -629,5 +642,5 @@ unsafe extern "C" fn vmx_exit_handler(context: &mut Context) -> u64 {
         debugbreak!();
     }
 
-    return guest_state.guest_rip + ins_len;
+    guest_state.guest_rip + ins_len
 }

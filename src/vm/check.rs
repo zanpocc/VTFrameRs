@@ -42,5 +42,5 @@ pub fn check_vmx_cpu_support() -> Result<(), &'static str> {
 
     info!("VMX cpu check success");
 
-    return Ok(());
+    Ok(())
 }

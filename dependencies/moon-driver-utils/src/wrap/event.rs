@@ -29,11 +29,14 @@ impl Event {
                 h: event_handle,
             };
 
-            return Ok(r);
+            Ok(r)
         }
     }
 
-    pub fn from_raw(raw: PKEVENT, h: Handle) -> Self {
+    /// # Safety
+    ///
+    /// this function will call KeClearEvent clear raw event
+    pub unsafe fn from_raw(raw: PKEVENT, h: Handle) -> Self {
         unsafe {
             KeClearEvent(raw);
         }
@@ -42,7 +45,7 @@ impl Event {
     }
 
     pub fn as_mut_raw(&mut self) -> PKEVENT {
-        *(&mut self.raw)
+        self.raw
     }
 }
 

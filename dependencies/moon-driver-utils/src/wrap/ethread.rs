@@ -13,10 +13,13 @@ pub struct Ethread {
 
 impl Ethread {
     pub fn from_raw(raw: PETHREAD) -> Self {
-        Self { raw: raw }
+        Self { raw }
     }
 
-    pub fn from_handle(h: PHANDLE) -> Self {
+    /// # Safety
+    ///
+    /// function will dereference phandle
+    pub unsafe fn from_handle(h: PHANDLE) -> Self {
         let mut r = Self {
             raw: core::ptr::null_mut(),
         };

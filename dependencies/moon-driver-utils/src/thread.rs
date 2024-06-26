@@ -27,6 +27,9 @@ pub struct SystemThread<T> {
 type ThreadFn<T> = unsafe fn(args: &mut Option<T>);
 
 impl<T> SystemThread<T> {
+    /// # Safety
+    ///
+    /// call system func
     pub unsafe extern "C" fn thread_proc(thread: *mut SystemThread<T>) {
         println!("Thread Running");
         let t = &mut *thread;
@@ -36,7 +39,7 @@ impl<T> SystemThread<T> {
         let function = &mut t.thread_fn;
         let args = &mut t.thread_args;
 
-        if t.timer == Option::None {
+        if t.timer.is_none() {
             function(args);
         } else {
             let mut time = LARGE_INTEGER::default();
@@ -93,10 +96,10 @@ impl<T> SystemThread<T> {
             timer,
         });
 
-        return match r {
+        match r {
             Ok(rr) => Ok(rr),
-            Err(_) => return Err("Memory Allocate Error"),
-        };
+            Err(_) => Err("Memory Allocate Error"),
+        }
     }
 
     pub fn start(&mut self) -> bool {
@@ -136,7 +139,7 @@ impl<T> SystemThread<T> {
 
             self.thread_objet = Ethread::from_handle(&mut self.thread_handle as *mut _ as _);
         }
-        return true;
+        true
     }
 }
 

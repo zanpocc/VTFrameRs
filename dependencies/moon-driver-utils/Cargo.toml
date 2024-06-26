@@ -11,6 +11,6 @@ wdk = "0.2.0"
 wdk-sys = "0.2.0"
 lazy_static = "1.4.0"
 
-moon-struct={path = "../moon-struct",version = "*"}
+moon-struct = { path = "../moon-struct", version = "*" }
 # // todo delete
-moon-instructions={path = "../moon-instructions",version = "*"}
+moon-instructions = { path = "../moon-instructions", version = "*" }

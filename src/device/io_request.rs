@@ -11,7 +11,7 @@ pub struct IoRequest {
 }
 
 impl IoRequest {
-    pub fn complete(&self, value: Result<usize, &'static str>) {
+    pub fn complete(&mut self, value: Result<usize, &'static str>) {
         let irp = self.as_raw_mut();
 
         match value {
@@ -30,7 +30,7 @@ impl IoRequest {
         }
     }
 
-    pub unsafe fn from_raw(irp: *mut IRP) -> Self {
+    pub fn from_raw(irp: *mut IRP) -> Self {
         Self { raw: irp }
     }
 
@@ -38,7 +38,7 @@ impl IoRequest {
         unsafe { &*self.raw }
     }
 
-    pub fn as_raw_mut(&self) -> &mut IRP {
+    pub fn as_raw_mut(&mut self) -> &mut IRP {
         unsafe { &mut *self.raw }
     }
 

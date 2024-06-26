@@ -25,3 +25,12 @@ pub fn init_obj_attr(oa: &mut OBJECT_ATTRIBUTES, name: &str) {
     oa.Attributes = OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE;
     oa.Length = core::mem::size_of::<OBJECT_ATTRIBUTES>() as _;
 }
+
+#[no_mangle]
+#[cfg(test)]
+pub extern "C" fn DriverEntry(
+    _driver_object: *mut core::ffi::c_void,
+    _registry_path: *mut core::ffi::c_void,
+) -> i32 {
+    -1
+}

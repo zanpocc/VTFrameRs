@@ -32,6 +32,12 @@ impl HookFunction {
     }
 }
 
+impl Default for HookFunction {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Drop for HookFunction {
     fn drop(&mut self) {
         info!("HookFunction Drop");
@@ -92,14 +98,15 @@ impl Drop for InlineHook {
 }
 
 fn init_jump_thunk(target_address: u64) -> JumpThunk {
-    let mut r = JumpThunk::default();
-    r.address_low = target_address as u32;
-    r.address_high = (target_address >> 32) as _;
-    r
+    JumpThunk {
+        address_low: target_address as u32,
+        address_high: (target_address >> 32) as _,
+        ..Default::default()
+    }
 }
 
 impl InlineHook {
-    pub fn inline_hook(rip: *mut u8, new_func: *mut u8) -> Result<InlineHook, &'static str> {
+    pub fn new(rip: *mut u8, new_func: *mut u8) -> Result<InlineHook, &'static str> {
         let jmp_thunk_size = core::mem::size_of::<JumpThunk>() as u32;
         let patch_size = unsafe { DistormAsmLength(rip as _, jmp_thunk_size as _) };
         if patch_size < jmp_thunk_size as _ {
@@ -136,11 +143,11 @@ impl InlineHook {
         }
 
         let r = InlineHook {
-            buffer: buffer,
-            patch_header: patch_header,
-            patch_size: patch_size,
-            old_func_header: old_func_header,
-            new_ori_func_header: new_ori_func_header,
+            buffer,
+            patch_header,
+            patch_size,
+            old_func_header,
+            new_ori_func_header,
             new_func_point: new_func,
             ori_func_point: rip,
             hooked: false,

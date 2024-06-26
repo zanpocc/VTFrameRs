@@ -26,8 +26,7 @@ pub fn set_bits_value(value: u64, shift: u64, len: u64, new_value: u64) -> u64 {
     // set new value
     let shifted_new_value = new_value << shift;
     // combine new value and clean value
-    let result = cleared_value | shifted_new_value;
-    result
+    cleared_value | shifted_new_value
 }
 
 pub fn set_bits_value32(value: u32, shift: u32, len: u32, new_value: u32) -> u32 {
@@ -40,6 +39,5 @@ pub fn set_bits_value32(value: u32, shift: u32, len: u32, new_value: u32) -> u32
     // set new value
     let shifted_new_value = new_value << shift;
     // combine new value and clean value
-    let result = cleared_value | shifted_new_value;
-    result
+    cleared_value | shifted_new_value
 }

@@ -1,21 +1,19 @@
-pub mod gd {
-    use moon_log::info;
+use moon_log::info;
 
-    use crate::{
-        device::{device::Device, symbolic_link::SymbolicLink},
-        vmx::vmx::Vmm,
-    };
+use crate::{
+    device::{symbolic_link::SymbolicLink, Device},
+    vm::vmx::Vmm,
+};
 
-    #[derive(Default)]
-    pub struct GD {
-        pub symbolic_link: Option<SymbolicLink>,
-        pub device: Option<Device>,
-        pub vmm: Option<Vmm>,
-    }
+#[derive(Default)]
+pub struct GD {
+    pub symbolic_link: Option<SymbolicLink>,
+    pub device: Option<Device>,
+    pub vmm: Option<Vmm>,
+}
 
-    impl Drop for GD {
-        fn drop(&mut self) {
-            info!("Start drop GD");
-        }
+impl Drop for GD {
+    fn drop(&mut self) {
+        info!("Start drop GD");
     }
 }

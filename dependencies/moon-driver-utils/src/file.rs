@@ -23,10 +23,12 @@ impl File {
 
         let mut h = Handle::default();
 
-        let mut oa = OBJECT_ATTRIBUTES::default();
-        oa.ObjectName = &mut str_to_unicode_string(file);
-        oa.Attributes = OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE;
-        oa.Length = core::mem::size_of::<OBJECT_ATTRIBUTES>() as _;
+        let mut oa = OBJECT_ATTRIBUTES {
+            ObjectName: &mut str_to_unicode_string(file),
+            Attributes: OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
+            Length: core::mem::size_of::<OBJECT_ATTRIBUTES>() as _,
+            ..Default::default()
+        };
 
         let mut io_status = IO_STATUS_BLOCK::default();
 
@@ -79,11 +81,11 @@ impl File {
         };
 
         if !NT_SUCCESS(status) {
-            return Err(alloc::string::String::from(alloc::format!(
+            return Err(alloc::format!(
                 "ZwWriteFile Error {:X},{:X}",
                 status,
                 unsafe { io_status.__bindgen_anon_1.Status }
-            )));
+            ));
         }
 
         Ok(())

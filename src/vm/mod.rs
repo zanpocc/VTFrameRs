@@ -9,7 +9,7 @@ pub mod ins {
 
     use moon_log::{error, info};
 
-    use crate::vmx::data::VM_INSTRUCTION_ERROR_MAP;
+    use crate::vm::data::VM_INSTRUCTION_ERROR_MAP;
 
     use super::data::vmcs_encoding::VM_INSTRUCTION_ERROR;
 
@@ -165,12 +165,8 @@ pub mod ins {
         let mut v: u64 = 0;
         let r = __vmx_vmread(field, &mut v);
         match r {
-            VmxInstructionResult::VmxSuccess => {
-                return v;
-            }
-            _ => {
-                return 0;
-            }
+            VmxInstructionResult::VmxSuccess => v,
+            _ => 0,
         }
     }
 
@@ -214,11 +210,9 @@ pub mod ins {
         match __vmx_vmread(VM_INSTRUCTION_ERROR, &mut error_code) {
             VmxInstructionResult::VmxSuccess => {
                 info!("Read ins error code success:{}", error_code);
-                return VM_INSTRUCTION_ERROR_MAP[error_code as usize];
+                VM_INSTRUCTION_ERROR_MAP[error_code as usize]
             }
-            _ => {
-                return "error to read vmlaunch error code";
-            }
+            _ => "error to read vmlaunch error code",
         }
     }
 }

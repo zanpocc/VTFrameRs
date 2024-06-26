@@ -40,15 +40,12 @@ const VERSION_MAP: [OSVersionInfo; 21] = [
         minor_version: 0,
         build_number: 0,
         version_name: "Unknown OS Version",
-        offset: {
-            let offset = Offset {
-                eprocess_peb: 0x550,
-                peb_ldr: 0x18,
-                ldr_in_load_order_module_list: 0x10,
-                ldre_base_dll_name: 0x58,
-                ldre_dll_base: 0x30,
-            };
-            offset
+        offset: Offset {
+            eprocess_peb: 0x550,
+            peb_ldr: 0x18,
+            ldr_in_load_order_module_list: 0x10,
+            ldre_base_dll_name: 0x58,
+            ldre_dll_base: 0x30,
         },
     },
     OSVersionInfo {
@@ -56,15 +53,12 @@ const VERSION_MAP: [OSVersionInfo; 21] = [
         minor_version: 0,
         build_number: 7601,
         version_name: "Windows 7",
-        offset: {
-            let offset = Offset {
-                eprocess_peb: 0x550,
-                peb_ldr: 0x18,
-                ldr_in_load_order_module_list: 0x10,
-                ldre_base_dll_name: 0x58,
-                ldre_dll_base: 0x30,
-            };
-            offset
+        offset: Offset {
+            eprocess_peb: 0x550,
+            peb_ldr: 0x18,
+            ldr_in_load_order_module_list: 0x10,
+            ldre_base_dll_name: 0x58,
+            ldre_dll_base: 0x30,
         },
     },
     OSVersionInfo {
@@ -72,15 +66,12 @@ const VERSION_MAP: [OSVersionInfo; 21] = [
         minor_version: 0,
         build_number: 10240,
         version_name: "Windows 10 Version 1507",
-        offset: {
-            let offset = Offset {
-                eprocess_peb: 0x550,
-                peb_ldr: 0x18,
-                ldr_in_load_order_module_list: 0x10,
-                ldre_base_dll_name: 0x58,
-                ldre_dll_base: 0x30,
-            };
-            offset
+        offset: Offset {
+            eprocess_peb: 0x550,
+            peb_ldr: 0x18,
+            ldr_in_load_order_module_list: 0x10,
+            ldre_base_dll_name: 0x58,
+            ldre_dll_base: 0x30,
         },
     },
     OSVersionInfo {
@@ -88,15 +79,12 @@ const VERSION_MAP: [OSVersionInfo; 21] = [
         minor_version: 0,
         build_number: 14393,
         version_name: "Windows 10 Version 1607",
-        offset: {
-            let offset = Offset {
-                eprocess_peb: 0x550,
-                peb_ldr: 0x18,
-                ldr_in_load_order_module_list: 0x10,
-                ldre_base_dll_name: 0x58,
-                ldre_dll_base: 0x30,
-            };
-            offset
+        offset: Offset {
+            eprocess_peb: 0x550,
+            peb_ldr: 0x18,
+            ldr_in_load_order_module_list: 0x10,
+            ldre_base_dll_name: 0x58,
+            ldre_dll_base: 0x30,
         },
     },
     OSVersionInfo {
@@ -104,15 +92,12 @@ const VERSION_MAP: [OSVersionInfo; 21] = [
         minor_version: 0,
         build_number: 15063,
         version_name: "Windows 10 Version 1703",
-        offset: {
-            let offset = Offset {
-                eprocess_peb: 0x550,
-                peb_ldr: 0x18,
-                ldr_in_load_order_module_list: 0x10,
-                ldre_base_dll_name: 0x58,
-                ldre_dll_base: 0x30,
-            };
-            offset
+        offset: Offset {
+            eprocess_peb: 0x550,
+            peb_ldr: 0x18,
+            ldr_in_load_order_module_list: 0x10,
+            ldre_base_dll_name: 0x58,
+            ldre_dll_base: 0x30,
         },
     },
     OSVersionInfo {
@@ -120,15 +105,12 @@ const VERSION_MAP: [OSVersionInfo; 21] = [
         minor_version: 0,
         build_number: 16299,
         version_name: "Windows 10 Version 1709",
-        offset: {
-            let offset = Offset {
-                eprocess_peb: 0x550,
-                peb_ldr: 0x18,
-                ldr_in_load_order_module_list: 0x10,
-                ldre_base_dll_name: 0x58,
-                ldre_dll_base: 0x30,
-            };
-            offset
+        offset: Offset {
+            eprocess_peb: 0x550,
+            peb_ldr: 0x18,
+            ldr_in_load_order_module_list: 0x10,
+            ldre_base_dll_name: 0x58,
+            ldre_dll_base: 0x30,
         },
     },
     OSVersionInfo {
@@ -136,16 +118,13 @@ const VERSION_MAP: [OSVersionInfo; 21] = [
         minor_version: 0,
         build_number: 17134,
         version_name: "Windows 10 Version 1803",
-        offset: {
-            let offset = Offset {
-                eprocess_peb: 0x550,
+        offset: Offset {
+            eprocess_peb: 0x550,
 
-                peb_ldr: 0x18,
-                ldr_in_load_order_module_list: 0x10,
-                ldre_base_dll_name: 0x58,
-                ldre_dll_base: 0x30,
-            };
-            offset
+            peb_ldr: 0x18,
+            ldr_in_load_order_module_list: 0x10,
+            ldre_base_dll_name: 0x58,
+            ldre_dll_base: 0x30,
         },
     },
     OSVersionInfo {
@@ -153,16 +132,13 @@ const VERSION_MAP: [OSVersionInfo; 21] = [
         minor_version: 0,
         build_number: 17763,
         version_name: "Windows 10 Version 1809",
-        offset: {
-            let offset = Offset {
-                eprocess_peb: 0x3f8,
+        offset: Offset {
+            eprocess_peb: 0x3f8,
 
-                peb_ldr: 0x18,
-                ldr_in_load_order_module_list: 0x10,
-                ldre_base_dll_name: 0x58,
-                ldre_dll_base: 0x30,
-            };
-            offset
+            peb_ldr: 0x18,
+            ldr_in_load_order_module_list: 0x10,
+            ldre_base_dll_name: 0x58,
+            ldre_dll_base: 0x30,
         },
     },
     OSVersionInfo {
@@ -170,15 +146,12 @@ const VERSION_MAP: [OSVersionInfo; 21] = [
         minor_version: 0,
         build_number: 18362,
         version_name: "Windows 10 Version 1903",
-        offset: {
-            let offset = Offset {
-                eprocess_peb: 0x550,
-                peb_ldr: 0x18,
-                ldr_in_load_order_module_list: 0x10,
-                ldre_base_dll_name: 0x58,
-                ldre_dll_base: 0x30,
-            };
-            offset
+        offset: Offset {
+            eprocess_peb: 0x550,
+            peb_ldr: 0x18,
+            ldr_in_load_order_module_list: 0x10,
+            ldre_base_dll_name: 0x58,
+            ldre_dll_base: 0x30,
         },
     },
     OSVersionInfo {
@@ -186,15 +159,12 @@ const VERSION_MAP: [OSVersionInfo; 21] = [
         minor_version: 0,
         build_number: 18363,
         version_name: "Windows 10 Version 1909",
-        offset: {
-            let offset = Offset {
-                eprocess_peb: 0x550,
-                peb_ldr: 0x18,
-                ldr_in_load_order_module_list: 0x10,
-                ldre_base_dll_name: 0x58,
-                ldre_dll_base: 0x30,
-            };
-            offset
+        offset: Offset {
+            eprocess_peb: 0x550,
+            peb_ldr: 0x18,
+            ldr_in_load_order_module_list: 0x10,
+            ldre_base_dll_name: 0x58,
+            ldre_dll_base: 0x30,
         },
     },
     // Hook GetCpuClock will KERNEL_SECURITY_CHECK_FAILURE BugCheck
@@ -203,15 +173,12 @@ const VERSION_MAP: [OSVersionInfo; 21] = [
         minor_version: 0,
         build_number: 18950,
         version_name: "Windows 10 Version 20H1",
-        offset: {
-            let offset = Offset {
-                eprocess_peb: 0x550,
-                peb_ldr: 0x18,
-                ldr_in_load_order_module_list: 0x10,
-                ldre_base_dll_name: 0x58,
-                ldre_dll_base: 0x30,
-            };
-            offset
+        offset: Offset {
+            eprocess_peb: 0x550,
+            peb_ldr: 0x18,
+            ldr_in_load_order_module_list: 0x10,
+            ldre_base_dll_name: 0x58,
+            ldre_dll_base: 0x30,
         },
     },
     // ExAllocatePool2 support lowest version
@@ -220,15 +187,12 @@ const VERSION_MAP: [OSVersionInfo; 21] = [
         minor_version: 0,
         build_number: 19041,
         version_name: "Windows 10 Version 2004",
-        offset: {
-            let offset = Offset {
-                eprocess_peb: 0x550,
-                peb_ldr: 0x18,
-                ldr_in_load_order_module_list: 0x10,
-                ldre_base_dll_name: 0x58,
-                ldre_dll_base: 0x30,
-            };
-            offset
+        offset: Offset {
+            eprocess_peb: 0x550,
+            peb_ldr: 0x18,
+            ldr_in_load_order_module_list: 0x10,
+            ldre_base_dll_name: 0x58,
+            ldre_dll_base: 0x30,
         },
     },
     OSVersionInfo {
@@ -236,15 +200,12 @@ const VERSION_MAP: [OSVersionInfo; 21] = [
         minor_version: 0,
         build_number: 19042,
         version_name: "Windows 10 Version 20H2",
-        offset: {
-            let offset = Offset {
-                eprocess_peb: 0x550,
-                peb_ldr: 0x18,
-                ldr_in_load_order_module_list: 0x10,
-                ldre_base_dll_name: 0x58,
-                ldre_dll_base: 0x30,
-            };
-            offset
+        offset: Offset {
+            eprocess_peb: 0x550,
+            peb_ldr: 0x18,
+            ldr_in_load_order_module_list: 0x10,
+            ldre_base_dll_name: 0x58,
+            ldre_dll_base: 0x30,
         },
     },
     OSVersionInfo {
@@ -252,15 +213,12 @@ const VERSION_MAP: [OSVersionInfo; 21] = [
         minor_version: 0,
         build_number: 19043,
         version_name: "Windows 10 Version 21H1",
-        offset: {
-            let offset = Offset {
-                eprocess_peb: 0x550,
-                peb_ldr: 0x18,
-                ldr_in_load_order_module_list: 0x10,
-                ldre_base_dll_name: 0x58,
-                ldre_dll_base: 0x30,
-            };
-            offset
+        offset: Offset {
+            eprocess_peb: 0x550,
+            peb_ldr: 0x18,
+            ldr_in_load_order_module_list: 0x10,
+            ldre_base_dll_name: 0x58,
+            ldre_dll_base: 0x30,
         },
     },
     OSVersionInfo {
@@ -268,15 +226,12 @@ const VERSION_MAP: [OSVersionInfo; 21] = [
         minor_version: 0,
         build_number: 19044,
         version_name: "Windows 10 Version 21H2",
-        offset: {
-            let offset = Offset {
-                eprocess_peb: 0x550,
-                peb_ldr: 0x18,
-                ldr_in_load_order_module_list: 0x10,
-                ldre_base_dll_name: 0x58,
-                ldre_dll_base: 0x30,
-            };
-            offset
+        offset: Offset {
+            eprocess_peb: 0x550,
+            peb_ldr: 0x18,
+            ldr_in_load_order_module_list: 0x10,
+            ldre_base_dll_name: 0x58,
+            ldre_dll_base: 0x30,
         },
     },
     OSVersionInfo {
@@ -284,15 +239,12 @@ const VERSION_MAP: [OSVersionInfo; 21] = [
         minor_version: 0,
         build_number: 19045,
         version_name: "Windows 10 Version 22H2",
-        offset: {
-            let offset = Offset {
-                eprocess_peb: 0x550,
-                peb_ldr: 0x18,
-                ldr_in_load_order_module_list: 0x10,
-                ldre_base_dll_name: 0x58,
-                ldre_dll_base: 0x30,
-            };
-            offset
+        offset: Offset {
+            eprocess_peb: 0x550,
+            peb_ldr: 0x18,
+            ldr_in_load_order_module_list: 0x10,
+            ldre_base_dll_name: 0x58,
+            ldre_dll_base: 0x30,
         },
     },
     // windows 11
@@ -301,15 +253,12 @@ const VERSION_MAP: [OSVersionInfo; 21] = [
         minor_version: 0,
         build_number: 22000,
         version_name: "Windows 10 Version 21H2",
-        offset: {
-            let offset = Offset {
-                eprocess_peb: 0x550,
-                peb_ldr: 0x18,
-                ldr_in_load_order_module_list: 0x10,
-                ldre_base_dll_name: 0x58,
-                ldre_dll_base: 0x30,
-            };
-            offset
+        offset: Offset {
+            eprocess_peb: 0x550,
+            peb_ldr: 0x18,
+            ldr_in_load_order_module_list: 0x10,
+            ldre_base_dll_name: 0x58,
+            ldre_dll_base: 0x30,
         },
     },
     OSVersionInfo {
@@ -317,15 +266,12 @@ const VERSION_MAP: [OSVersionInfo; 21] = [
         minor_version: 0,
         build_number: 22000,
         version_name: "Windows 11 Version 21H2",
-        offset: {
-            let offset = Offset {
-                eprocess_peb: 0x550,
-                peb_ldr: 0x18,
-                ldr_in_load_order_module_list: 0x10,
-                ldre_base_dll_name: 0x58,
-                ldre_dll_base: 0x30,
-            };
-            offset
+        offset: Offset {
+            eprocess_peb: 0x550,
+            peb_ldr: 0x18,
+            ldr_in_load_order_module_list: 0x10,
+            ldre_base_dll_name: 0x58,
+            ldre_dll_base: 0x30,
         },
     },
     // kdmapper supported latest version
@@ -334,15 +280,12 @@ const VERSION_MAP: [OSVersionInfo; 21] = [
         minor_version: 0,
         build_number: 22449,
         version_name: "Windows 11 Insider Preview Build 22449",
-        offset: {
-            let offset = Offset {
-                eprocess_peb: 0x550,
-                peb_ldr: 0x18,
-                ldr_in_load_order_module_list: 0x10,
-                ldre_base_dll_name: 0x58,
-                ldre_dll_base: 0x30,
-            };
-            offset
+        offset: Offset {
+            eprocess_peb: 0x550,
+            peb_ldr: 0x18,
+            ldr_in_load_order_module_list: 0x10,
+            ldre_base_dll_name: 0x58,
+            ldre_dll_base: 0x30,
         },
     },
     OSVersionInfo {
@@ -350,15 +293,12 @@ const VERSION_MAP: [OSVersionInfo; 21] = [
         minor_version: 0,
         build_number: 22621,
         version_name: "Windows 11 Version 22H2",
-        offset: {
-            let offset = Offset {
-                eprocess_peb: 0x550,
-                peb_ldr: 0x18,
-                ldr_in_load_order_module_list: 0x10,
-                ldre_base_dll_name: 0x58,
-                ldre_dll_base: 0x30,
-            };
-            offset
+        offset: Offset {
+            eprocess_peb: 0x550,
+            peb_ldr: 0x18,
+            ldr_in_load_order_module_list: 0x10,
+            ldre_base_dll_name: 0x58,
+            ldre_dll_base: 0x30,
         },
     },
     OSVersionInfo {
@@ -366,15 +306,12 @@ const VERSION_MAP: [OSVersionInfo; 21] = [
         minor_version: 0,
         build_number: 22631,
         version_name: "Windows 11 Version 23H2",
-        offset: {
-            let offset = Offset {
-                eprocess_peb: 0x550,
-                peb_ldr: 0x18,
-                ldr_in_load_order_module_list: 0x10,
-                ldre_base_dll_name: 0x58,
-                ldre_dll_base: 0x30,
-            };
-            offset
+        offset: Offset {
+            eprocess_peb: 0x550,
+            peb_ldr: 0x18,
+            ldr_in_load_order_module_list: 0x10,
+            ldre_base_dll_name: 0x58,
+            ldre_dll_base: 0x30,
         },
     },
 ];
@@ -396,7 +333,7 @@ lazy_static! {
         let status = unsafe { RtlGetVersion(os_version_ptr) };
 
         if !NT_SUCCESS(status) {
-            return VERSION_MAP[0].clone();
+            return VERSION_MAP[0];
         }
 
         for os_info in VERSION_MAP {
@@ -407,6 +344,6 @@ lazy_static! {
             }
         }
 
-        VERSION_MAP[0].clone()
+        VERSION_MAP[0]
     };
 }
