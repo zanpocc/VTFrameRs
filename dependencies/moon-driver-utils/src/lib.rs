@@ -8,7 +8,6 @@ pub mod file;
 pub mod macor;
 pub mod memory;
 pub mod mutex;
-pub mod os_version;
 pub mod registry;
 pub mod rwlock;
 pub mod spinlock;

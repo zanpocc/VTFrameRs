@@ -127,6 +127,7 @@ const VERSION_MAP: [OSVersionInfo; 21] = [
             ldre_dll_base: 0x30,
         },
     },
+    // all ready
     OSVersionInfo {
         major_version: 10,
         minor_version: 0,
@@ -261,6 +262,7 @@ const VERSION_MAP: [OSVersionInfo; 21] = [
             ldre_dll_base: 0x30,
         },
     },
+    //
     OSVersionInfo {
         major_version: 11,
         minor_version: 0,

@@ -102,25 +102,12 @@ pub fn test() -> Result<(), TestError> {
 
 pub struct InitError {}
 
-/// # Safety
-///
-/// init will change global var
-pub unsafe fn init(driver_object: &mut _DRIVER_OBJECT) -> Result<(), InitError> {
-    // allocate global memeory
-    match NPP::new(GD::default()) {
-        Ok(r) => {
-            __GD = Some(r);
-        }
-        Err(_e) => {
-            return Err(InitError {});
-        }
-    }
-
-    // check cpu support
-    if let Err(e) = check_vmx_cpu_support() {
-        error!("{}", e);
+pub unsafe fn init_ioctl(driver_object: *mut _DRIVER_OBJECT) -> Result<(), InitError> {
+    if driver_object.is_null() {
         return Err(InitError {});
     }
+
+    let driver_object = driver_object.as_mut().unwrap();
 
     // create device and symboliclink)
     let mut driver = Driver::from_raw(driver_object);
@@ -153,6 +140,36 @@ pub unsafe fn init(driver_object: &mut _DRIVER_OBJECT) -> Result<(), InitError> 
         }
     }
 
+    // set dispatch function
+    for i in 0..IRP_MJ_MAXIMUM_FUNCTION {
+        driver_object.MajorFunction[i as usize] = Some(dispatch_device);
+    }
+
+    driver_object.DriverUnload = Some(driver_unload);
+
+    Ok(())
+}
+
+/// # Safety
+///
+/// init will change global var
+pub unsafe fn init() -> Result<(), InitError> {
+    // check cpu support
+    if let Err(e) = check_vmx_cpu_support() {
+        error!("{}", e);
+        return Err(InitError {});
+    }
+
+    // allocate global memeory
+    match NPP::new(GD::default()) {
+        Ok(r) => {
+            __GD = Some(r);
+        }
+        Err(_e) => {
+            return Err(InitError {});
+        }
+    }
+
     Ok(())
 }
 
@@ -165,11 +182,15 @@ pub unsafe extern "system" fn driver_entry(
     _registry_path: PCUNICODE_STRING,
 ) -> NTSTATUS {
     info!("Driver entry");
+    info!("{}", OS_INFO.version_name);
 
     let status = STATUS_SUCCESS;
-    let driver_object = driver_object.as_mut().unwrap();
 
-    if init(driver_object).is_err() {
+    if init_ioctl(driver_object).is_err() {
+        info!("Mapper Driver Load");
+    }
+
+    if init().is_err() {
         clear();
         return STATUS_UNSUCCESSFUL;
     }
@@ -179,14 +200,6 @@ pub unsafe extern "system" fn driver_entry(
         return STATUS_UNSUCCESSFUL;
     }
 
-    info!("{}", OS_INFO.version_name);
-
-    // set dispatch function
-    for i in 0..IRP_MJ_MAXIMUM_FUNCTION {
-        driver_object.MajorFunction[i as usize] = Some(dispatch_device);
-    }
-
-    driver_object.DriverUnload = Some(driver_unload);
     status
 }
 
